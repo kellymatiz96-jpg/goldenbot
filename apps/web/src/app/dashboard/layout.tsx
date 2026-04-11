@@ -166,10 +166,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Topbar móvil */}
       <header className="md:hidden bg-dark-900 text-white flex items-center justify-between px-4 py-3 sticky top-0 z-20">
-        <div className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <div className="w-7 h-7 bg-primary-500 rounded-lg flex items-center justify-center text-sm">🤖</div>
           <span className="font-bold text-sm">GoldenBot</span>
-        </div>
+        </Link>
         <div className="flex items-center gap-3">
           {pendingAgentCount > 0 && (
             <Link href="/dashboard/conversations" className="flex items-center gap-1 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 animate-pulse">
@@ -213,7 +213,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         {/* Contenido principal */}
-        <main className="flex-1 md:ml-64 p-4 md:p-8 min-h-screen w-full">
+        <main className="flex-1 md:ml-64 p-4 md:p-8 w-full">
           {children}
         </main>
       </div>
