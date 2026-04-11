@@ -168,7 +168,7 @@ export default function LeadsPage() {
         </p>
       )}
 
-      {/* Tabla */}
+      {/* Lista de leads */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
@@ -177,41 +177,74 @@ export default function LeadsPage() {
         <div className="card text-center py-12">
           <div className="text-5xl mb-3">🎯</div>
           <h3 className="font-semibold text-dark-800 mb-2">No hay leads aún</h3>
-          <p className="text-dark-400 text-sm">
-            Los leads aparecen aquí cuando alguien escribe a tu chatbot
-          </p>
+          <p className="text-dark-400 text-sm">Los leads aparecen aquí cuando alguien escribe a tu chatbot</p>
         </div>
       ) : (
         <>
-          <div className="card p-0 overflow-hidden">
+          {/* Tarjetas móvil */}
+          <div className="flex flex-col gap-3 md:hidden pb-8">
+            {data.leads.map((lead) => {
+              const conv = lead.conversations[0];
+              const displayName = lead.name || lead.phone || lead.externalId.slice(0, 16) + '...';
+              return (
+                <div key={lead.id} className="card p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700 flex-shrink-0">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-dark-900 truncate">{displayName}</p>
+                      {lead.phone && lead.name && <p className="text-xs text-dark-400">{lead.phone}</p>}
+                    </div>
+                    <Badge variant={TEMPERATURE_BADGE[lead.temperature]}>
+                      {TEMPERATURE_LABELS[lead.temperature]}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-dark-500">
+                    <span>{CHANNEL_ICONS[conv?.channel?.type || lead.source]} {conv?.channel?.type || lead.source}</span>
+                    <span>{conv?.lastMessageAt ? formatDate(conv.lastMessageAt) : formatDate(lead.updatedAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-dark-100">
+                    <select
+                      value={lead.temperature}
+                      onChange={(e) => changeTemperature(lead, e.target.value as 'COLD' | 'WARM' | 'HOT')}
+                      className="text-xs border border-dark-200 rounded px-2 py-1 text-dark-600 bg-white"
+                    >
+                      <option value="COLD">Frío</option>
+                      <option value="WARM">Tibio</option>
+                      <option value="HOT">Caliente</option>
+                    </select>
+                    {conv ? (
+                      <button onClick={() => goToConversation(lead)} className="text-xs font-medium text-primary-600">
+                        Ver conversación →
+                      </button>
+                    ) : (
+                      <span className="text-xs text-dark-400">Sin conversación</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Tabla desktop */}
+          <div className="hidden md:block card p-0 overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-100 bg-dark-50">
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">
-                    Lead
-                  </th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">
-                    Canal
-                  </th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">
-                    Temperatura
-                  </th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">
-                    Última actividad
-                  </th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">
-                    Acciones
-                  </th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Lead</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Canal</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Temperatura</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Última actividad</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-100">
                 {data.leads.map((lead) => {
                   const conv = lead.conversations[0];
                   const displayName = lead.name || lead.phone || lead.externalId.slice(0, 12) + '...';
-
                   return (
                     <tr key={lead.id} className="hover:bg-dark-50 transition-colors">
-                      {/* Nombre */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700 flex-shrink-0">
@@ -219,33 +252,21 @@ export default function LeadsPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-dark-900">{displayName}</p>
-                            {lead.phone && lead.name && (
-                              <p className="text-xs text-dark-400">{lead.phone}</p>
-                            )}
+                            {lead.phone && lead.name && <p className="text-xs text-dark-400">{lead.phone}</p>}
                           </div>
                         </div>
                       </td>
-
-                      {/* Canal */}
                       <td className="px-5 py-4">
                         <span className="text-sm text-dark-600">
-                          {CHANNEL_ICONS[conv?.channel?.type || lead.source] || '💬'}{' '}
-                          {conv?.channel?.type || lead.source}
+                          {CHANNEL_ICONS[conv?.channel?.type || lead.source]} {conv?.channel?.type || lead.source}
                         </span>
                       </td>
-
-                      {/* Temperatura */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <Badge variant={TEMPERATURE_BADGE[lead.temperature] as 'default' | 'warning' | 'danger'}>
-                            {TEMPERATURE_LABELS[lead.temperature]}
-                          </Badge>
-                          {/* Selector rápido */}
+                          <Badge variant={TEMPERATURE_BADGE[lead.temperature]}>{TEMPERATURE_LABELS[lead.temperature]}</Badge>
                           <select
                             value={lead.temperature}
-                            onChange={(e) =>
-                              changeTemperature(lead, e.target.value as 'COLD' | 'WARM' | 'HOT')
-                            }
+                            onChange={(e) => changeTemperature(lead, e.target.value as 'COLD' | 'WARM' | 'HOT')}
                             className="text-xs border border-dark-200 rounded px-1 py-0.5 text-dark-600 bg-white"
                           >
                             <option value="COLD">Frío</option>
@@ -254,26 +275,15 @@ export default function LeadsPage() {
                           </select>
                         </div>
                       </td>
-
-                      {/* Última actividad */}
                       <td className="px-5 py-4">
                         <p className="text-sm text-dark-600">
                           {conv?.lastMessageAt ? formatDate(conv.lastMessageAt) : formatDate(lead.updatedAt)}
                         </p>
-                        {conv && (
-                          <p className="text-xs text-dark-400">
-                            {conv.status === 'AGENT_ACTIVE' ? '🎧 Con agente' : '🤖 Con bot'}
-                          </p>
-                        )}
+                        {conv && <p className="text-xs text-dark-400">{conv.status === 'AGENT_ACTIVE' ? '🎧 Con agente' : '🤖 Con bot'}</p>}
                       </td>
-
-                      {/* Acciones */}
                       <td className="px-5 py-4">
                         {conv ? (
-                          <button
-                            onClick={() => goToConversation(lead)}
-                            className="text-xs font-medium text-primary-600 hover:text-primary-800 transition-colors"
-                          >
+                          <button onClick={() => goToConversation(lead)} className="text-xs font-medium text-primary-600 hover:text-primary-800">
                             Ver conversación →
                           </button>
                         ) : (
@@ -289,25 +299,11 @@ export default function LeadsPage() {
 
           {/* Paginación */}
           {data.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-dark-400">
-                Página {data.page} de {data.totalPages}
-              </p>
+            <div className="flex items-center justify-between mt-4 pb-4">
+              <p className="text-sm text-dark-400">Página {data.page} de {data.totalPages}</p>
               <div className="flex gap-2">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="px-3 py-1.5 text-sm border border-dark-200 rounded-lg disabled:opacity-40 hover:bg-dark-50"
-                >
-                  ← Anterior
-                </button>
-                <button
-                  disabled={page === data.totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="px-3 py-1.5 text-sm border border-dark-200 rounded-lg disabled:opacity-40 hover:bg-dark-50"
-                >
-                  Siguiente →
-                </button>
+                <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 text-sm border border-dark-200 rounded-lg disabled:opacity-40 hover:bg-dark-50">← Anterior</button>
+                <button disabled={page === data.totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 text-sm border border-dark-200 rounded-lg disabled:opacity-40 hover:bg-dark-50">Siguiente →</button>
               </div>
             </div>
           )}
