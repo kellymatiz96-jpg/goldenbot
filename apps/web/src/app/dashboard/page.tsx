@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const changeSign = (metrics?.comparison.change ?? 0) >= 0 ? '+' : '';
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 pb-8">
       {/* Header */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-dark-900">
