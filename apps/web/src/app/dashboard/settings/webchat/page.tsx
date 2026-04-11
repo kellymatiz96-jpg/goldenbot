@@ -1,20 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function WebchatPage() {
   const { user } = useAuthStore();
   const [copied, setCopied] = useState(false);
+  const [clientSlug, setClientSlug] = useState('tu-negocio');
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   const widgetUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/widget.js`
     : 'https://tudominio.com/widget.js';
 
-  const clientSlug = user?.clientId ? 'cliente-demo' : 'tu-negocio';
+  useEffect(() => {
+    if (user?.clientId) {
+      api.get('/client/me').then(({ data }) => {
+        if (data.data?.slug) setClientSlug(data.data.slug);
+      }).catch(() => {});
+    }
+  }, [user?.clientId]);
 
   const embedCode = `<!-- GoldenBot Widget -->
 <script

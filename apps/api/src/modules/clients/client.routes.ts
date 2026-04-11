@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../../shared/middlewares/authenticate';
+import { prisma } from '../../config/database';
 import {
   getBusinessInfo,
   upsertBusinessInfo,
@@ -28,6 +29,19 @@ const businessInfoSchema = z.object({
   welcomeMessage: z.string().optional(),
   humanKeywords: z.array(z.string()).optional(),
   extraInfo: z.string().optional(),
+});
+
+// GET /client/me — devuelve el slug del cliente actual
+router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: req.user!.clientId! },
+      select: { id: true, slug: true, name: true },
+    });
+    res.json({ success: true, data: client });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /client/business-info
