@@ -17,12 +17,10 @@ export default function WebchatPage() {
     : 'https://tudominio.com/widget.js';
 
   useEffect(() => {
-    if (user?.clientId) {
-      api.get('/client/me').then(({ data }) => {
-        if (data.data?.slug) setClientSlug(data.data.slug);
-      }).catch(() => {});
-    }
-  }, [user?.clientId]);
+    api.get('/client/me').then(({ data }) => {
+      if (data.data?.slug) setClientSlug(data.data.slug);
+    }).catch(() => {});
+  }, []);
 
   const embedCode = `<!-- GoldenBot Widget -->
 <script
