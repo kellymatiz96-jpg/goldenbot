@@ -105,14 +105,14 @@ export default function RemarketingPage() {
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-dark-900">Remarketing automático</h1>
           <p className="text-dark-500 mt-1">
             Envía mensajes automáticos a leads que no han respondido en varios días.
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)}>+ Nueva campaña</Button>
+        <Button onClick={() => setShowModal(true)} className="sm:flex-shrink-0">+ Nueva campaña</Button>
       </div>
 
       {/* Explicación */}
@@ -127,7 +127,7 @@ export default function RemarketingPage() {
       </div>
 
       {/* Botones de control */}
-      <div className="flex justify-end gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 mb-4">
         <Button variant="secondary" size="sm" onClick={simulateInactive}>
           🕐 Simular leads inactivos (prueba)
         </Button>

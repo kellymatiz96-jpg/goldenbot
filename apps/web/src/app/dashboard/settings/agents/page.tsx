@@ -89,14 +89,14 @@ export default function AgentsPage() {
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-dark-900">Agentes humanos</h1>
           <p className="text-dark-500 mt-1">
             Los agentes pueden tomar el control de conversaciones cuando el lead lo necesita.
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)}>+ Agregar agente</Button>
+        <Button onClick={() => setShowModal(true)} className="sm:flex-shrink-0">+ Agregar agente</Button>
       </div>
 
       {isLoading ? (
@@ -113,51 +113,84 @@ export default function AgentsPage() {
           <Button onClick={() => setShowModal(true)}>+ Agregar primer agente</Button>
         </div>
       ) : (
-        <div className="card">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-dark-200">
-                <th className="text-left py-3 text-dark-500 font-medium">Nombre</th>
-                <th className="text-left py-3 text-dark-500 font-medium">Email</th>
-                <th className="text-left py-3 text-dark-500 font-medium">Rol</th>
-                <th className="text-left py-3 text-dark-500 font-medium">Estado</th>
-                <th className="py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {agents.map((agent) => (
-                <tr key={agent.id} className="border-b border-dark-100 last:border-0">
-                  <td className="py-3 font-medium text-dark-900">{agent.name}</td>
-                  <td className="py-3 text-dark-500">{agent.email}</td>
-                  <td className="py-3">
+        <>
+          {/* Tarjetas móvil */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {agents.map((agent) => (
+              <div key={agent.id} className="card p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-dark-900 truncate">{agent.name}</p>
+                    <p className="text-xs text-dark-400 truncate">{agent.email}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <Badge variant={agent.role === 'CLIENT_ADMIN' ? 'gold' : 'default'}>
                       {roleLabel[agent.role] || agent.role}
                     </Badge>
-                  </td>
-                  <td className="py-3">
                     <Badge variant={agent.isActive ? 'success' : 'danger'}>
                       {agent.isActive ? 'Activo' : 'Inactivo'}
                     </Badge>
-                  </td>
-                  <td className="py-3 text-right">
-                    {agent.role !== 'CLIENT_ADMIN' && (
-                      <button
-                        onClick={() => toggleAgent(agent)}
-                        className={`text-xs font-medium transition-colors ${
-                          agent.isActive
-                            ? 'text-red-400 hover:text-red-600'
-                            : 'text-green-500 hover:text-green-700'
-                        }`}
-                      >
-                        {agent.isActive ? 'Desactivar' : 'Activar'}
-                      </button>
-                    )}
-                  </td>
+                  </div>
+                </div>
+                {agent.role !== 'CLIENT_ADMIN' && (
+                  <button
+                    onClick={() => toggleAgent(agent)}
+                    className={`text-xs font-medium transition-colors ${
+                      agent.isActive ? 'text-red-400 hover:text-red-600' : 'text-green-500 hover:text-green-700'
+                    }`}
+                  >
+                    {agent.isActive ? 'Desactivar' : 'Activar'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Tabla desktop */}
+          <div className="hidden md:block card">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-dark-200">
+                  <th className="text-left py-3 text-dark-500 font-medium">Nombre</th>
+                  <th className="text-left py-3 text-dark-500 font-medium">Email</th>
+                  <th className="text-left py-3 text-dark-500 font-medium">Rol</th>
+                  <th className="text-left py-3 text-dark-500 font-medium">Estado</th>
+                  <th className="py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {agents.map((agent) => (
+                  <tr key={agent.id} className="border-b border-dark-100 last:border-0">
+                    <td className="py-3 font-medium text-dark-900">{agent.name}</td>
+                    <td className="py-3 text-dark-500">{agent.email}</td>
+                    <td className="py-3">
+                      <Badge variant={agent.role === 'CLIENT_ADMIN' ? 'gold' : 'default'}>
+                        {roleLabel[agent.role] || agent.role}
+                      </Badge>
+                    </td>
+                    <td className="py-3">
+                      <Badge variant={agent.isActive ? 'success' : 'danger'}>
+                        {agent.isActive ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-right">
+                      {agent.role !== 'CLIENT_ADMIN' && (
+                        <button
+                          onClick={() => toggleAgent(agent)}
+                          className={`text-xs font-medium transition-colors ${
+                            agent.isActive ? 'text-red-400 hover:text-red-600' : 'text-green-500 hover:text-green-700'
+                          }`}
+                        >
+                          {agent.isActive ? 'Desactivar' : 'Activar'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Info de cómo funciona */}
