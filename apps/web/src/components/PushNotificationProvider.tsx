@@ -75,20 +75,37 @@ export default function PushNotificationProvider() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permission]);
 
-  if (permission === 'granted' || permission === 'denied') return null;
+  const [dismissed, setDismissed] = useState(false);
+
+  if (permission === 'granted' || permission === 'denied' || dismissed) return null;
+
+  // iOS: solo funciona si está instalada como PWA
+  const isIOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
 
   return (
     <div className="fixed bottom-20 right-4 z-50 bg-white border border-amber-200 rounded-xl shadow-lg p-4 max-w-xs">
-      <p className="text-sm font-semibold text-dark-900 mb-1">Activa las notificaciones</p>
-      <p className="text-xs text-dark-500 mb-3">
-        Recibe alertas cuando llegue un mensaje nuevo, aunque tengas el celular bloqueado.
-      </p>
-      <button
-        onClick={requestPermission}
-        className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-      >
-        Activar notificaciones
-      </button>
+      <div className="flex items-start justify-between mb-1">
+        <p className="text-sm font-semibold text-dark-900">Activa las notificaciones</p>
+        <button onClick={() => setDismissed(true)} className="text-dark-400 hover:text-dark-600 ml-2 text-lg leading-none">×</button>
+      </div>
+      {isIOS && !isStandalone ? (
+        <p className="text-xs text-dark-500 mb-3">
+          En iPhone, primero instala la app: toca <strong>Compartir</strong> → <strong>Agregar a pantalla de inicio</strong>. Luego abre desde el ícono y activa las notificaciones.
+        </p>
+      ) : (
+        <p className="text-xs text-dark-500 mb-3">
+          Recibe alertas cuando llegue un mensaje nuevo, aunque tengas el celular bloqueado.
+        </p>
+      )}
+      {(!isIOS || isStandalone) && (
+        <button
+          onClick={requestPermission}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+        >
+          Activar notificaciones
+        </button>
+      )}
     </div>
   );
 }
