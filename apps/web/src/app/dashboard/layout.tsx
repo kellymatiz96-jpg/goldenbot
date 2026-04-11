@@ -172,9 +172,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <div className="flex items-center gap-3">
           {pendingAgentCount > 0 && (
-            <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+            <Link href="/dashboard/conversations" className="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
               {pendingAgentCount > 9 ? '9+' : pendingAgentCount}
-            </span>
+            </Link>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
