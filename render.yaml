@@ -34,6 +34,12 @@ services:
         sync: false
       - key: TWILIO_WHATSAPP_NUMBER
         value: "whatsapp:+14155238886"
+      - key: VAPID_PUBLIC_KEY
+        value: "BCALsi9H0C1q39WBguxEtRW1dEY8KCQHWX_KwJ1kCuaYeb4kCZfGXeTM5VjzL9vsDRjjJsMH8UrN3BGjYo_nfOg"
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_EMAIL
+        value: "admin@goldenbot.com"
 
 databases:
   - name: goldenbot-db
