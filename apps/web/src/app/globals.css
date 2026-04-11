@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .card {
+    @apply bg-white rounded-xl border border-dark-200 shadow-sm p-6;
+  }
+
+  .input {
+    @apply w-full border border-dark-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-dark-700 mb-1.5;
+  }
+
+  /* Badge de temperatura */
+  .badge-cold {
+    @apply bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full;
+  }
+
+  .badge-warm {
+    @apply bg-orange-100 text-orange-700 text-xs font-medium px-2.5 py-0.5 rounded-full;
+  }
+
+  .badge-hot {
+    @apply bg-red-100 text-red-700 text-xs font-medium px-2.5 py-0.5 rounded-full;
+  }
+}

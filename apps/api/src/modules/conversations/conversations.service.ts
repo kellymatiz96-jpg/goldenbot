@@ -1,0 +1,199 @@
+import { ConversationStatus } from '@prisma/client';
+import { prisma } from '../../config/database';
+import { AppError } from '../../shared/middlewares/errorHandler';
+
+export async function getConversations(clientId: string, page = 1, limit = 30) {
+  const skip = (page - 1) * limit;
+
+  const [conversations, total] = await Promise.all([
+    prisma.conversation.findMany({
+      where: { clientId },
+      orderBy: { lastMessageAt: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        lead: {
+          select: { id: true, name: true, phone: true, temperature: true, externalId: true },
+        },
+        channel: { select: { type: true } },
+        assignedAgent: { select: { id: true, name: true } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { content: true, role: true, createdAt: true },
+        },
+      },
+    }),
+    prisma.conversation.count({ where: { clientId } }),
+  ]);
+
+  return { conversations, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+export async function getConversationWithMessages(clientId: string, conversationId: string) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: {
+      lead: true,
+      channel: { select: { type: true } },
+      assignedAgent: { select: { id: true, name: true } },
+      messages: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          content: true,
+          role: true,
+          isRead: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  if (!conversation) {
+    throw new AppError('Conversación no encontrada', 404);
+  }
+
+  // Verificar que pertenece al cliente autenticado
+  if (conversation.clientId !== clientId) {
+    throw new AppError('Acceso denegado', 403);
+  }
+
+  // Marcar mensajes como leídos
+  await prisma.message.updateMany({
+    where: { conversationId, isRead: false, role: 'user' },
+    data: { isRead: true },
+  });
+
+  return conversation;
+}
+
+export async function takeOverConversation(
+  clientId: string,
+  conversationId: string,
+  agentId: string
+) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+  });
+
+  if (!conversation || conversation.clientId !== clientId) {
+    throw new AppError('Conversación no encontrada', 404);
+  }
+
+  return prisma.conversation.update({
+    where: { id: conversationId },
+    data: {
+      status: ConversationStatus.AGENT_ACTIVE,
+      assignedAgentId: agentId,
+    },
+  });
+}
+
+export async function releaseConversation(clientId: string, conversationId: string) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+  });
+
+  if (!conversation || conversation.clientId !== clientId) {
+    throw new AppError('Conversación no encontrada', 404);
+  }
+
+  return prisma.conversation.update({
+    where: { id: conversationId },
+    data: {
+      status: ConversationStatus.BOT_ACTIVE,
+      assignedAgentId: null,
+    },
+  });
+}
+
+export async function getDashboardMetrics(clientId: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [
+    conversationsToday,
+    coldLeads,
+    warmLeads,
+    hotLeads,
+    activeConversations,
+    totalLeads,
+    lastMonthLeads,
+    recentMessages,
+  ] = await Promise.all([
+    prisma.conversation.count({
+      where: { clientId, createdAt: { gte: today } },
+    }),
+    prisma.lead.count({ where: { clientId, temperature: 'COLD', isActive: true } }),
+    prisma.lead.count({ where: { clientId, temperature: 'WARM', isActive: true } }),
+    prisma.lead.count({ where: { clientId, temperature: 'HOT', isActive: true } }),
+    prisma.conversation.count({
+      where: { clientId, status: { not: 'CLOSED' } },
+    }),
+    prisma.lead.count({ where: { clientId, isActive: true } }),
+    // Leads del mes anterior para comparar
+    prisma.lead.count({
+      where: {
+        clientId,
+        createdAt: {
+          gte: new Date(today.getFullYear(), today.getMonth() - 1, 1),
+          lt: new Date(today.getFullYear(), today.getMonth(), 1),
+        },
+      },
+    }),
+    // Últimos 30 mensajes del bot para calcular tiempo de respuesta
+    prisma.message.findMany({
+      where: { clientId, role: 'bot' },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: { createdAt: true, conversationId: true },
+    }),
+  ]);
+
+  // Conversaciones por día (últimos 7 días) para la gráfica
+  const last7Days = await Promise.all(
+    Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - i));
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+      return prisma.conversation
+        .count({
+          where: { clientId, createdAt: { gte: date, lt: nextDate } },
+        })
+        .then((count) => ({
+          date: date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }),
+          conversaciones: count,
+        }));
+    })
+  );
+
+  // Score de salud (0-100) — algoritmo simple basado en métricas
+  const hotRatio = totalLeads > 0 ? hotLeads / totalLeads : 0;
+  const warmRatio = totalLeads > 0 ? warmLeads / totalLeads : 0;
+  const activityScore = Math.min(conversationsToday * 5, 30);
+  const conversionScore = Math.round(hotRatio * 40 + warmRatio * 20 + activityScore);
+  const healthScore = Math.min(Math.max(conversionScore, 0), 100);
+
+  return {
+    conversationsToday,
+    activeConversations,
+    leads: {
+      cold: coldLeads,
+      warm: warmLeads,
+      hot: hotLeads,
+      total: totalLeads,
+    },
+    chartData: last7Days,
+    healthScore,
+    comparison: {
+      leadsThisMonth: totalLeads,
+      leadsLastMonth: lastMonthLeads,
+      change:
+        lastMonthLeads > 0
+          ? Math.round(((totalLeads - lastMonthLeads) / lastMonthLeads) * 100)
+          : 0,
+    },
+  };
+}

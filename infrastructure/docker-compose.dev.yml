@@ -1,0 +1,68 @@
+version: '3.8'
+
+# Docker Compose para DESARROLLO LOCAL
+# Levanta solo la base de datos y Redis
+# El API y el frontend se corren directamente con npm run dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: goldenbot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: goldenbot
+      POSTGRES_USER: goldenbot
+      POSTGRES_PASSWORD: goldenbot_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U goldenbot']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: goldenbot_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+# ============================================
+# CÓMO USAR ESTO:
+#
+# 1. Levantar base de datos y Redis:
+#    docker-compose -f infrastructure/docker-compose.dev.yml up -d
+#
+# 2. Copiar el .env.example a .env y configurarlo:
+#    cp .env.example .env
+#    (La URL de la BD para este archivo es: postgresql://goldenbot:goldenbot_dev@localhost:5432/goldenbot)
+#
+# 3. Instalar dependencias:
+#    npm install
+#
+# 4. Generar el cliente de Prisma y migrar:
+#    npm run db:migrate (desde la raíz)
+#
+# 5. Cargar datos iniciales:
+#    npm run db:seed (desde la raíz)
+#
+# 6. Correr el API:
+#    npm run dev:api
+#
+# 7. Correr el frontend (en otra terminal):
+#    npm run dev:web
+# ============================================

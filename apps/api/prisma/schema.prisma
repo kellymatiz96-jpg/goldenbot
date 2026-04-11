@@ -1,0 +1,353 @@
+// GoldenBot - Esquema de Base de Datos
+// Prisma Schema v5
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  SUPERADMIN   // El dueño de la plataforma
+  CLIENT_ADMIN // El administrador de cada cliente
+  AGENT        // Agente humano del cliente
+}
+
+enum Plan {
+  BASIC        // GPT-4o mini, 500 conv/mes, 1 canal
+  PROFESSIONAL // Claude API, 2000 conv/mes, 2 canales
+  PREMIUM      // Todo ilimitado
+}
+
+enum Temperature {
+  COLD         // Frío: explorando, sin intención clara
+  WARM         // Tibio: interés pero necesita más info
+  HOT          // Caliente: listo para comprar
+}
+
+enum ChannelType {
+  WHATSAPP
+  INSTAGRAM
+  WEBCHAT
+}
+
+enum ConversationStatus {
+  BOT_ACTIVE   // El bot está respondiendo
+  AGENT_ACTIVE // Un agente humano tomó el control
+  CLOSED       // Conversación cerrada
+}
+
+enum AIProvider {
+  OPENAI
+  ANTHROPIC
+}
+
+enum AlertType {
+  HOT_LEAD_NO_RESPONSE    // Lead caliente sin respuesta +2h
+  HIGH_AD_SPEND           // Gasto en ads mayor al umbral
+  COLD_LEAD_INACTIVE      // Lead frío sin contacto por X días
+  REMARKETING_DUE         // Momento de enviar remarketing
+}
+
+enum RemarketingStatus {
+  PENDING    // En cola, aún no enviado
+  SENT       // Enviado exitosamente
+  SKIPPED    // Saltado (lead respondió antes)
+  FAILED     // Falló el envío
+}
+
+// ============================================
+// CLIENTES (los clientes del superadmin)
+// ============================================
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String                         // Nombre del negocio del cliente
+  slug      String   @unique               // Identificador URL: mi-restaurante
+  plan      Plan     @default(BASIC)
+  isActive  Boolean  @default(true)
+  maxConversationsPerMonth Int @default(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  users         User[]
+  businessInfo  BusinessInfo?
+  channels      Channel[]
+  leads         Lead[]
+  conversations Conversation[]
+  messages      Message[]
+  aiConfig      AIConfig?
+  alerts        Alert[]
+  remarketingCampaigns RemarketingCampaign[]
+
+  @@map("clients")
+}
+
+// ============================================
+// USUARIOS (superadmin, admins de clientes, agentes)
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(AGENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Solo los roles CLIENT_ADMIN y AGENT tienen clientId
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+
+  // Conversaciones que este agente atiende
+  assignedConversations Conversation[]
+
+  @@map("users")
+}
+
+// ============================================
+// INFORMACIÓN DEL NEGOCIO (alimenta al chatbot)
+// ============================================
+
+model BusinessInfo {
+  id          String  @id @default(cuid())
+  clientId    String  @unique
+  client      Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  businessName    String           // Nombre del negocio
+  description     String?          // Descripción del negocio
+  services        String?          // Qué vende/ofrece (texto libre)
+  prices          String?          // Precios o rangos de precios
+  schedule        String?          // Horarios de atención
+  location        String?          // Ubicación o zona de servicio
+  faq             Json?            // Array de {pregunta, respuesta}
+  welcomeMessage  String?          // Mensaje de bienvenida del bot
+  humanKeywords   String[]         // Palabras que activan escalado a humano
+  extraInfo       String?          // Información adicional para el bot
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("business_info")
+}
+
+// ============================================
+// CANALES (WhatsApp, Instagram, Webchat por cliente)
+// ============================================
+
+model Channel {
+  id        String      @id @default(cuid())
+  clientId  String
+  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      ChannelType
+  isActive  Boolean     @default(true)
+  config    Json?       // Credenciales y configuración del canal (encriptado en prod)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  conversations Conversation[]
+
+  @@unique([clientId, type]) // Un cliente no puede tener el mismo canal dos veces
+  @@map("channels")
+}
+
+// ============================================
+// LEADS (contactos/prospectos)
+// ============================================
+
+model Lead {
+  id          String      @id @default(cuid())
+  clientId    String
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name        String?
+  phone       String?
+  email       String?
+  externalId  String?     // ID del contacto en WhatsApp/Instagram
+  source      ChannelType // Por dónde llegó el lead
+  temperature Temperature @default(COLD)
+  isActive    Boolean     @default(true)
+  notes       String?     // Notas del agente sobre el lead
+  tags        String[]    // Etiquetas personalizadas
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations    Conversation[]
+  temperatureLog   TemperatureLog[]
+  remarketingQueue RemarketingQueue[]
+
+  @@unique([clientId, externalId, source]) // Mismo contacto no se duplica
+  @@map("leads")
+}
+
+// ============================================
+// HISTORIAL DE TEMPERATURA DEL LEAD
+// ============================================
+
+model TemperatureLog {
+  id          String      @id @default(cuid())
+  leadId      String
+  lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  temperature Temperature
+  reason      String?     // Justificación de la IA o del agente
+  changedBy   String?     // "ai" o el userId del agente que cambió manualmente
+  createdAt   DateTime    @default(now())
+
+  @@map("temperature_logs")
+}
+
+// ============================================
+// CONVERSACIONES
+// ============================================
+
+model Conversation {
+  id        String             @id @default(cuid())
+  clientId  String
+  client    Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  leadId    String
+  lead      Lead               @relation(fields: [leadId], references: [id])
+  channelId String
+  channel   Channel            @relation(fields: [channelId], references: [id])
+  status    ConversationStatus @default(BOT_ACTIVE)
+
+  // Agente humano asignado (null = bot activo)
+  assignedAgentId String?
+  assignedAgent   User?   @relation(fields: [assignedAgentId], references: [id])
+
+  lastMessageAt DateTime?
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages Message[]
+
+  @@map("conversations")
+}
+
+// ============================================
+// MENSAJES
+// ============================================
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id])
+
+  content    String
+  role       String   // "user" | "bot" | "agent"
+  isRead     Boolean  @default(false)
+  metadata   Json?    // Datos extras (tipo de media, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+// ============================================
+// CONFIGURACIÓN DE IA POR CLIENTE
+// ============================================
+
+model AIConfig {
+  id       String @id @default(cuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Chatbot (responder preguntas)
+  chatbotProvider AIProvider @default(OPENAI)
+  chatbotModel    String     @default("gpt-4o-mini")
+
+  // Clasificación de temperatura
+  classificationProvider AIProvider @default(ANTHROPIC)
+  classificationModel    String     @default("claude-haiku-20240307")
+
+  // Reportes y análisis
+  analyticsProvider AIProvider @default(ANTHROPIC)
+  analyticsModel    String     @default("claude-3-5-sonnet-20241022")
+
+  // Límites del plan
+  maxTokensPerMessage Int @default(500)
+  contextMessages     Int @default(10) // Cuántos mensajes previos incluir como contexto
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_configs")
+}
+
+// ============================================
+// CAMPAÑAS DE REMARKETING
+// ============================================
+
+model RemarketingCampaign {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  name            String
+  isActive        Boolean @default(true)
+  inactiveDays    Int     @default(3)  // Días de inactividad para iniciar
+  targetTemperature Temperature[]      // A qué temperaturas aplica
+  messages        Json                 // Array de {dayOffset, content}
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  queue RemarketingQueue[]
+
+  @@map("remarketing_campaigns")
+}
+
+// ============================================
+// COLA DE REMARKETING (mensajes programados)
+// ============================================
+
+model RemarketingQueue {
+  id         String            @id @default(cuid())
+  campaignId String
+  campaign   RemarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId     String
+  lead       Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  scheduledFor DateTime
+  status       RemarketingStatus @default(PENDING)
+  messageIndex Int               @default(0) // Qué mensaje de la campaña enviar
+  sentAt       DateTime?
+  error        String?
+
+  createdAt DateTime @default(now())
+
+  @@map("remarketing_queue")
+}
+
+// ============================================
+// ALERTAS DEL SISTEMA
+// ============================================
+
+model Alert {
+  id       String    @id @default(cuid())
+  clientId String
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  type      AlertType
+  title     String
+  message   String
+  isRead    Boolean   @default(false)
+  metadata  Json?     // Datos adicionales (leadId, conversationId, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@map("alerts")
+}
