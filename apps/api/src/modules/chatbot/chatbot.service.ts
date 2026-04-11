@@ -25,12 +25,24 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     return '';
   }
 
-  // 2. Buscar o crear el canal
-  const channel = await prisma.channel.findFirst({
+  // 2. Buscar o crear el canal automáticamente
+  let channel = await prisma.channel.findFirst({
     where: { clientId: client.id, type: incoming.channelType },
   });
 
-  if (!channel || !channel.isActive) {
+  if (!channel) {
+    channel = await prisma.channel.create({
+      data: {
+        clientId: client.id,
+        type: incoming.channelType,
+        isActive: true,
+        name: incoming.channelType === 'WEBCHAT' ? 'Webchat' : incoming.channelType,
+      },
+    });
+    logger.info(`Canal ${incoming.channelType} creado automáticamente para cliente ${client.slug}`);
+  }
+
+  if (!channel.isActive) {
     logger.warn(`Canal ${incoming.channelType} no activo para cliente ${client.slug}`);
     return '';
   }
