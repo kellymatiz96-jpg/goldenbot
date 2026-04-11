@@ -36,7 +36,6 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
         clientId: client.id,
         type: incoming.channelType,
         isActive: true,
-        name: incoming.channelType === 'WEBCHAT' ? 'Webchat' : incoming.channelType,
       },
     });
     logger.info(`Canal ${incoming.channelType} creado automáticamente para cliente ${client.slug}`);
