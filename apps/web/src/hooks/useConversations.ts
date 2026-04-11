@@ -178,7 +178,11 @@ export function useConversationDetail(conversationId: string | null) {
   const sendAgentMessage = async (content: string) => {
     if (!conversationId) return;
     try {
-      await api.post(`/conversations/${conversationId}/agent-message`, { content });
+      const { data } = await api.post(`/conversations/${conversationId}/agent-message`, { content });
+      // Agregar el mensaje al estado local inmediatamente
+      setConversation((prev) =>
+        prev ? { ...prev, messages: [...prev.messages, data.data] } : prev
+      );
     } catch {
       toast.error('Error al enviar el mensaje');
     }
