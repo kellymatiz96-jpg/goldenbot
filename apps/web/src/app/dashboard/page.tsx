@@ -97,27 +97,9 @@ export default function DashboardPage() {
 
       {/* Leads por temperatura — 3 columnas compactas */}
       <div className="grid grid-cols-3 gap-2 md:gap-4">
-        <TemperatureCard
-          label="Fríos"
-          value={metrics?.leads.cold ?? 0}
-          emoji="🔵"
-          className="border-l-4 border-blue-300"
-          description="Explorando"
-        />
-        <TemperatureCard
-          label="Tibios"
-          value={metrics?.leads.warm ?? 0}
-          emoji="🟠"
-          className="border-l-4 border-orange-300"
-          description="Interesados"
-        />
-        <TemperatureCard
-          label="Calientes"
-          value={metrics?.leads.hot ?? 0}
-          emoji="🔴"
-          className="border-l-4 border-red-400"
-          description="¡Atender ya!"
-        />
+        <TemperatureCard label="Fríos" value={metrics?.leads.cold ?? 0} emoji="🔵" className="border-l-4 border-blue-300" />
+        <TemperatureCard label="Tibios" value={metrics?.leads.warm ?? 0} emoji="🟠" className="border-l-4 border-orange-300" />
+        <TemperatureCard label="Calientes" value={metrics?.leads.hot ?? 0} emoji="🔴" className="border-l-4 border-red-400" />
       </div>
 
       {/* Gráfica conversaciones */}
@@ -177,18 +159,17 @@ function KPICard({
 }
 
 function TemperatureCard({
-  label, value, emoji, description, className,
+  label, value, emoji, className,
 }: {
-  label: string; value: number; emoji: string; description: string; className?: string;
+  label: string; value: number; emoji: string; className?: string;
 }) {
   return (
     <div className={`card p-3 md:p-5 ${className}`}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs md:text-sm font-medium text-dark-700 truncate pr-1">{label}</span>
-        <span className="text-base md:text-xl flex-shrink-0">{emoji}</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs md:text-sm font-medium text-dark-700">{label}</span>
+        <span className="text-base md:text-xl">{emoji}</span>
       </div>
       <p className="text-2xl md:text-3xl font-bold text-dark-900">{value}</p>
-      <p className="text-xs text-dark-400 mt-1 leading-tight">{description}</p>
     </div>
   );
 }

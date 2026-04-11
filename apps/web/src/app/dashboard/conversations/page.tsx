@@ -212,38 +212,41 @@ export default function ConversationsPage() {
       ) : detail ? (
         <>
           {/* Header del chat */}
-          <div className="px-4 py-3 border-b border-dark-200 flex items-center gap-3">
-            {/* Botón volver en móvil */}
-            <button
-              onClick={handleBack}
-              className="md:hidden p-1 rounded-lg hover:bg-dark-100 text-dark-500 flex-shrink-0"
-            >
-              ← Volver
-            </button>
-            <div className="w-9 h-9 rounded-full bg-dark-200 flex items-center justify-center text-base flex-shrink-0">
-              {detail.status === 'AGENT_ACTIVE' ? '🎧' : temperatureConfig[detail.lead.temperature].emoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-dark-900 text-sm truncate">
+          <div className="px-3 py-2 border-b border-dark-200">
+            {/* Fila 1: volver + nombre */}
+            <div className="flex items-center gap-2 mb-1.5">
+              <button
+                onClick={handleBack}
+                className="md:hidden text-sm text-dark-500 hover:text-dark-800 flex-shrink-0 font-medium"
+              >
+                ← Volver
+              </button>
+              <div className="w-8 h-8 rounded-full bg-dark-200 flex items-center justify-center text-sm flex-shrink-0">
+                {detail.status === 'AGENT_ACTIVE' ? '🎧' : temperatureConfig[detail.lead.temperature].emoji}
+              </div>
+              <p className="font-semibold text-dark-900 text-sm truncate flex-1">
                 {detail.lead.name || detail.lead.phone || detail.lead.externalId || 'Desconocido'}
               </p>
-              <div className="flex items-center gap-1.5 flex-wrap">
+            </div>
+            {/* Fila 2: badges + botón */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
                 <Badge variant={temperatureConfig[detail.lead.temperature].variant}>
                   {temperatureConfig[detail.lead.temperature].label}
                 </Badge>
                 <span className="text-xs text-dark-400">{channelEmoji[detail.channel.type]} {detail.channel.type}</span>
               </div>
-            </div>
-            <div className="flex-shrink-0">
-              {detail.status === 'BOT_ACTIVE' ? (
-                <Button size="sm" variant="primary" onClick={() => takeOver(detail.id)}>
-                  🎧 Tomar control
-                </Button>
-              ) : (
-                <Button size="sm" variant="secondary" onClick={() => release(detail.id)}>
-                  🤖 Devolver al bot
-                </Button>
-              )}
+              <div className="flex-shrink-0">
+                {detail.status === 'BOT_ACTIVE' ? (
+                  <Button size="sm" variant="primary" onClick={() => takeOver(detail.id)}>
+                    🎧 Tomar control
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => release(detail.id)}>
+                    🤖 Devolver bot
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 

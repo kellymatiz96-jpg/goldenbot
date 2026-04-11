@@ -172,8 +172,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <div className="flex items-center gap-3">
           {pendingAgentCount > 0 && (
-            <Link href="/dashboard/conversations" className="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
-              {pendingAgentCount > 9 ? '9+' : pendingAgentCount}
+            <Link href="/dashboard/conversations" className="flex items-center gap-1 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 animate-pulse">
+              🔔 {pendingAgentCount > 9 ? '9+' : pendingAgentCount}
             </Link>
           )}
           <button
