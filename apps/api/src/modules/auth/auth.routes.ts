@@ -1,9 +1,19 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { loginUser, refreshAccessToken, getMe } from './auth.service';
 import { authenticate } from '../../shared/middlewares/authenticate';
 
 const router = Router();
+
+// Máximo 10 intentos de login por IP cada 15 minutos
+const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Demasiados intentos de login. Intenta en 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -15,7 +25,7 @@ const refreshSchema = z.object({
 });
 
 // POST /auth/login
-router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/login', loginRateLimit, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     const result = await loginUser(email, password);

@@ -23,6 +23,7 @@ import whatsappRoutes from './modules/channels/whatsapp.routes';
 import remarketingRoutes from './modules/remarketing/remarketing.routes';
 import leadsRoutes from './modules/leads/leads.routes';
 import { startRemarketingScheduler } from './modules/remarketing/remarketing.scheduler';
+import notificationsRoutes from './modules/notifications/notifications.routes';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -88,6 +89,7 @@ app.use('/webchat', webchatRoutes);
 app.use('/webhook/whatsapp', whatsappRoutes);
 app.use('/remarketing', remarketingRoutes);
 app.use('/leads', leadsRoutes);
+app.use('/notifications', notificationsRoutes);
 
 // ---- 404 ----
 app.use((_req, res) => {

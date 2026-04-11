@@ -4,6 +4,7 @@ import { getAIProvider } from '../ai/ai.factory';
 import { buildSystemPrompt, buildChatMessages } from '../ai/prompt.builder';
 import { logger } from '../../shared/utils/logger';
 import { markLeadAsResponded } from '../remarketing/remarketing.service';
+import { sendPushToClient } from '../notifications/notifications.service';
 
 export interface IncomingMessage {
   channelType: 'WHATSAPP' | 'INSTAGRAM' | 'WEBCHAT';
@@ -124,9 +125,14 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
   // 6. Si el lead responde, sacarlo del remarketing automáticamente
   markLeadAsResponded(lead.id).catch(() => {});
 
-  // 7. Si un agente está atendiendo, el bot NO responde
+  // 7. Si un agente está atendiendo, el bot NO responde pero sí notifica al agente
   if (conversation.status === 'AGENT_ACTIVE') {
     logger.info(`Conversación ${conversation.id} en modo agente, bot no responde`);
+    sendPushToClient(client.id, {
+      title: 'Mensaje nuevo',
+      body: `${lead.name || incoming.externalId}: ${incoming.content}`,
+      conversationId: conversation.id,
+    }).catch(() => {});
     return '';
   }
 
@@ -144,6 +150,11 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     await handleEscalation(client.id, conversation.id, lead.id);
     const escalationMsg = 'Entendido, voy a conectarte con un agente ahora mismo. Por favor espera un momento.';
     await saveAndEmitBotMessage(client.id, conversation.id, escalationMsg);
+    sendPushToClient(client.id, {
+      title: 'Lead solicita agente humano',
+      body: `${lead.name || incoming.externalId} quiere hablar con una persona`,
+      conversationId: conversation.id,
+    }).catch(() => {});
     return escalationMsg;
   }
 

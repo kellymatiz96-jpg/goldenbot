@@ -1,9 +1,44 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import twilio from 'twilio';
 import { processIncomingMessage } from '../chatbot/chatbot.service';
 import { logger } from '../../shared/utils/logger';
 
 const router = Router();
+
+/**
+ * Middleware que verifica que el mensaje viene realmente de Twilio.
+ * Twilio firma cada request con un HMAC-SHA1 usando tu Auth Token.
+ * Si la firma no coincide, rechaza el request con 403.
+ */
+function validateTwilioSignature(req: Request, res: Response, next: NextFunction) {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  // Si no hay Auth Token configurado (desarrollo local), dejamos pasar
+  if (!authToken) {
+    logger.warn('[WhatsApp] TWILIO_AUTH_TOKEN no configurado — saltando validación de firma');
+    return next();
+  }
+
+  const signature = req.headers['x-twilio-signature'] as string;
+  if (!signature) {
+    logger.warn('[WhatsApp] Request sin firma de Twilio — rechazado');
+    res.status(403).send('Forbidden');
+    return;
+  }
+
+  // Reconstruir la URL completa tal como Twilio la ve
+  const url = `https://goldenbot-api.onrender.com${req.originalUrl}`;
+
+  const isValid = twilio.validateRequest(authToken, signature, url, req.body);
+
+  if (!isValid) {
+    logger.warn(`[WhatsApp] Firma inválida para ${url} — posible intento de ataque`);
+    res.status(403).send('Forbidden');
+    return;
+  }
+
+  next();
+}
 
 /**
  * POST /webhook/whatsapp/:clientSlug
@@ -15,7 +50,7 @@ const router = Router();
  * Ejemplo para cliente-demo:
  *   https://goldenbot-api.onrender.com/webhook/whatsapp/cliente-demo
  */
-router.post('/:clientSlug', async (req: Request, res: Response) => {
+router.post('/:clientSlug', validateTwilioSignature, async (req: Request, res: Response) => {
   try {
     const { clientSlug } = req.params;
 
