@@ -19,6 +19,7 @@ import clientRoute from './modules/clients/client.routes';
 import conversationsRoutes from './modules/conversations/conversations.routes';
 import webhookRoutes from './modules/chatbot/webhook.routes';
 import webchatRoutes from './modules/channels/webchat.routes';
+import whatsappRoutes from './modules/channels/whatsapp.routes';
 import remarketingRoutes from './modules/remarketing/remarketing.routes';
 import leadsRoutes from './modules/leads/leads.routes';
 import { startRemarketingScheduler } from './modules/remarketing/remarketing.scheduler';
@@ -84,6 +85,7 @@ app.use('/client', clientRoute);
 app.use('/conversations', conversationsRoutes);
 app.use('/webhook', webhookRoutes);
 app.use('/webchat', webchatRoutes);
+app.use('/webhook/whatsapp', whatsappRoutes);
 app.use('/remarketing', remarketingRoutes);
 app.use('/leads', leadsRoutes);
 
