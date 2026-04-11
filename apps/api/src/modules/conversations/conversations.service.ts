@@ -1,6 +1,9 @@
 import { ConversationStatus } from '@prisma/client';
+import twilio from 'twilio';
 import { prisma } from '../../config/database';
+import { getIO } from '../../config/socket';
 import { AppError } from '../../shared/middlewares/errorHandler';
+import { logger } from '../../shared/utils/logger';
 
 export async function getConversations(clientId: string, page = 1, limit = 30) {
   const skip = (page - 1) * limit;
@@ -88,6 +91,68 @@ export async function takeOverConversation(
       assignedAgentId: agentId,
     },
   });
+}
+
+export async function sendAgentMessage(
+  clientId: string,
+  conversationId: string,
+  content: string
+) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: { lead: true, channel: true },
+  });
+
+  if (!conversation || conversation.clientId !== clientId) {
+    throw new AppError('Conversación no encontrada', 404);
+  }
+
+  // Guardar mensaje en la BD
+  const message = await prisma.message.create({
+    data: { conversationId, clientId, role: 'agent', content },
+  });
+
+  // Actualizar lastMessageAt de la conversación
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { lastMessageAt: new Date() },
+  });
+
+  // Emitir por Socket.io al panel
+  try {
+    getIO().to(`client:${clientId}`).emit('message:new', {
+      conversationId,
+      role: 'agent',
+      content,
+      createdAt: message.createdAt.toISOString(),
+    });
+  } catch {
+    logger.warn('Socket.io no disponible');
+  }
+
+  // Si el canal es WhatsApp, enviar el mensaje via Twilio
+  if (conversation.channel?.type === 'WHATSAPP') {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886';
+
+    if (accountSid && authToken && conversation.lead?.externalId) {
+      try {
+        const client = twilio(accountSid, authToken);
+        await client.messages.create({
+          from: fromNumber,
+          to: `whatsapp:${conversation.lead.externalId}`,
+          body: content,
+        });
+        logger.info(`[WhatsApp] Mensaje del agente enviado a ${conversation.lead.externalId}`);
+      } catch (err) {
+        logger.error('[WhatsApp] Error enviando mensaje del agente via Twilio:', err);
+        throw new AppError('Error al enviar el mensaje por WhatsApp', 500);
+      }
+    }
+  }
+
+  return message;
 }
 
 export async function releaseConversation(clientId: string, conversationId: string) {

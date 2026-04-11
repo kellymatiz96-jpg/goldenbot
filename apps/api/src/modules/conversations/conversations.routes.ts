@@ -5,6 +5,7 @@ import {
   getConversationWithMessages,
   takeOverConversation,
   releaseConversation,
+  sendAgentMessage,
   getDashboardMetrics,
 } from './conversations.service';
 
@@ -53,6 +54,22 @@ router.post('/:id/take-over', async (req: Request, res: Response, next: NextFunc
     const agentId = req.user!.id;
     const conversation = await takeOverConversation(clientId, req.params.id, agentId);
     res.json({ success: true, data: conversation });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /conversations/:id/agent-message — agente envía mensaje
+router.post('/:id/agent-message', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const clientId = req.user!.clientId!;
+    const { content } = req.body;
+    if (!content || typeof content !== 'string') {
+      res.status(400).json({ success: false, message: 'El contenido del mensaje es requerido' });
+      return;
+    }
+    const message = await sendAgentMessage(clientId, req.params.id, content);
+    res.json({ success: true, data: message });
   } catch (err) {
     next(err);
   }
