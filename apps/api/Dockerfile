@@ -27,5 +27,5 @@ ENV PORT=3001
 
 EXPOSE 3001
 
-# Aplicar migraciones y arrancar el servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Aplicar migraciones, seed inicial y arrancar el servidor
+CMD ["sh", "-c", "npx prisma migrate deploy && npx ts-node prisma/seed.ts && node dist/server.js"]
