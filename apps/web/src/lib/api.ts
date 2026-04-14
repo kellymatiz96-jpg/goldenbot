@@ -31,6 +31,11 @@ api.interceptors.response.use(
       !originalRequest._retry &&
       typeof window !== 'undefined'
     ) {
+      // En el login no intentar renovar — dejar que el formulario maneje el error
+      if (originalRequest.url?.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
+
       // Evitar bucle infinito si el propio endpoint de refresh da 401
       if (originalRequest.url?.includes('/auth/refresh')) {
         localStorage.removeItem('goldenbot_token');
