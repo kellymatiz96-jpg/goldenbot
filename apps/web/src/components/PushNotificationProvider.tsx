@@ -75,19 +75,29 @@ export default function PushNotificationProvider() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permission]);
 
-  const [dismissed, setDismissed] = useState(false);
-
-  if (permission === 'granted' || permission === 'denied' || dismissed) return null;
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('push_banner_dismissed') === '1';
+  });
 
   // iOS: solo funciona si está instalada como PWA
   const isIOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  // Solo mostrar en móviles (no en escritorio)
+  const isMobile = typeof navigator !== 'undefined' && /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  if (permission === 'granted' || permission === 'denied' || dismissed || !isMobile) return null;
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    localStorage.setItem('push_banner_dismissed', '1');
+  };
 
   return (
     <div className="fixed bottom-20 right-4 z-50 bg-white border border-amber-200 rounded-xl shadow-lg p-4 max-w-xs">
       <div className="flex items-start justify-between mb-1">
         <p className="text-sm font-semibold text-dark-900">Activa las notificaciones</p>
-        <button onClick={() => setDismissed(true)} className="text-dark-400 hover:text-dark-600 ml-2 text-lg leading-none">×</button>
+        <button onClick={handleDismiss} className="text-dark-400 hover:text-dark-600 ml-2 text-lg leading-none">×</button>
       </div>
       {isIOS && !isStandalone ? (
         <p className="text-xs text-dark-500 mb-3">

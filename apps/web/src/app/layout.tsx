@@ -20,7 +20,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f59e0b" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        {/* iOS PWA */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GoldenBot" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
       </head>
       <body>
         {children}
