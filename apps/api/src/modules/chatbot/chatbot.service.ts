@@ -289,10 +289,10 @@ async function classifyTemperature(
 Clasifica al cliente en UNA de estas categorías basándote SOLO en lo que escribió el cliente:
 
 - COLD: Saludos simples ("Hola", "Buenos días", "Buenas"), mensajes de prueba, o frases cortas sin ninguna pregunta sobre servicios, precios o disponibilidad. Si el cliente no menciona nada concreto del negocio → COLD.
-- WARM: El cliente hace preguntas específicas sobre servicios, precios, horarios o disponibilidad. Muestra curiosidad real pero todavía no tomó una decisión.
-- HOT: El cliente muestra intención clara de comprar o contratar. Ejemplos: "quiero reservar", "me interesa", "¿cuándo puedo ir?", "quiero una cita", "¿tienen disponibilidad?", pide cotización, o dice que quiere proceder. Solo es HOT si hay una señal clara y directa de intención.
+- WARM: El cliente hace preguntas sobre servicios, precios, horarios o disponibilidad, pero sin decir que quiere comprar o reservar. Ejemplo: "¿qué tratamientos tienen?", "¿cuánto cuesta?", "¿en qué zona están?".
+- HOT: El cliente expresa intención de comprar, reservar o contratar. Basta con que lo diga de cualquier forma: "me gustaría agendar", "quiero reservar", "quiero una cita", "me interesa el servicio", "¿cuándo puedo ir?", "¿tienen disponibilidad?", "me lo llevo", "quiero cotizar". Si el cliente dice que QUIERE algo concreto del negocio → HOT.
 
-Regla importante: ante la duda entre COLD y WARM → COLD. Ante la duda entre WARM y HOT → WARM.
+Regla: ante la duda entre COLD y WARM → COLD. Si el cliente expresa que quiere algo, aunque sea con "me gustaría" o "quisiera" → HOT.
 
 Conversación:
 ${conversationText}

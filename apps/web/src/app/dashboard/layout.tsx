@@ -106,7 +106,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     loadPendingCount();
 
     const socket: Socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
-    socket.emit('join:client', user.clientId);
+
+    // Esperar conexión antes de unirse al room, para no perder el evento
+    socket.on('connect', () => {
+      socket.emit('join:client', user.clientId);
+    });
 
     socket.on('alert:new', (data: { type: string; message: string }) => {
       if (data.type === 'HUMAN_REQUESTED') {
