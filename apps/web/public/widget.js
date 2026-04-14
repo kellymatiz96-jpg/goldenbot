@@ -27,6 +27,8 @@
   var welcomeMessage = '¡Hola! ¿En qué puedo ayudarte?';
   var isOpen = false;
   var messages = [];
+  var conversationId = null;
+  var socket = null;
 
   // Cargar configuración del negocio
   fetch(apiUrl + '/webchat/config/' + clientSlug)
@@ -151,6 +153,28 @@
       .replace(/\n/g, '<br>');
   }
 
+  // Conectar socket.io para recibir mensajes del agente en tiempo real
+  function connectSocket() {
+    if (socket) return;
+    var s = document.createElement('script');
+    s.src = apiUrl + '/socket.io/socket.io.js';
+    s.onload = function () {
+      socket = window.io(apiUrl, { transports: ['websocket', 'polling'] });
+      socket.on('connect', function () {
+        if (conversationId) {
+          socket.emit('join:conversation', conversationId);
+        }
+      });
+      socket.on('message:new', function (data) {
+        // Solo mostrar mensajes del agente (los del bot llegan por HTTP)
+        if (data.role === 'agent' && data.conversationId === conversationId) {
+          addMessage('agent', data.content);
+        }
+      });
+    };
+    document.head.appendChild(s);
+  }
+
   function sendMessage() {
     var text = input.value.trim();
     if (!text) return;
@@ -171,6 +195,13 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         hideTyping();
+        // Guardar conversationId y unirse al room de socket
+        if (data.conversationId && !conversationId) {
+          conversationId = data.conversationId;
+          if (socket && socket.connected) {
+            socket.emit('join:conversation', conversationId);
+          }
+        }
         if (data.reply) {
           addMessage('bot', data.reply);
         }
@@ -188,6 +219,7 @@
       box.classList.add('open');
       btn.textContent = '✕';
       input.focus();
+      connectSocket(); // Conectar socket al abrir para recibir mensajes del agente
       // Mostrar mensaje de bienvenida si es la primera vez
       if (messages.length === 0) {
         setTimeout(function () {

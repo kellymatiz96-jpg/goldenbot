@@ -1,10 +1,14 @@
 import { Router, Request, Response } from 'express';
+import cors from 'cors';
 import { z } from 'zod';
 import { processIncomingMessage } from '../chatbot/chatbot.service';
 import { prisma } from '../../config/database';
 import { logger } from '../../shared/utils/logger';
 
 const router = Router();
+
+// El widget se embebe en cualquier web — permitir todos los orígenes
+router.use(cors({ origin: '*' }));
 
 const messageSchema = z.object({
   sessionId: z.string().min(1),   // ID único del visitante (generado en el browser)
@@ -26,7 +30,24 @@ router.post('/message', async (req: Request, res: Response) => {
       leadName: data.visitorName,
     });
 
-    res.json({ success: true, reply });
+    // Obtener el conversationId para que el widget pueda unirse al room de socket
+    let conversationId: string | undefined;
+    try {
+      const client = await prisma.client.findUnique({ where: { slug: data.clientSlug } });
+      if (client) {
+        const conv = await prisma.conversation.findFirst({
+          where: {
+            clientId: client.id,
+            lead: { externalId: data.sessionId, source: 'WEBCHAT' },
+            status: { not: 'CLOSED' },
+          },
+          select: { id: true },
+        });
+        conversationId = conv?.id;
+      }
+    } catch { /* no bloquear si falla */ }
+
+    res.json({ success: true, reply, conversationId });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ success: false, message: 'Datos inválidos' });

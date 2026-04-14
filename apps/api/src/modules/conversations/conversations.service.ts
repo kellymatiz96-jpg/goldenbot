@@ -118,14 +118,17 @@ export async function sendAgentMessage(
     data: { lastMessageAt: new Date() },
   });
 
-  // Emitir por Socket.io al panel
+  // Emitir por Socket.io al panel del agente y al widget del visitante
   try {
-    getIO().to(`client:${clientId}`).emit('message:new', {
+    const payload = {
       conversationId,
       role: 'agent',
       content,
       createdAt: message.createdAt.toISOString(),
-    });
+    };
+    getIO().to(`client:${clientId}`).emit('message:new', payload);
+    // También al room de la conversación para que lo reciba el widget embebido
+    getIO().to(`conversation:${conversationId}`).emit('message:new', payload);
   } catch {
     logger.warn('Socket.io no disponible');
   }

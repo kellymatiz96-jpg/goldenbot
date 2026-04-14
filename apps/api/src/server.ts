@@ -30,7 +30,8 @@ const httpServer = http.createServer(app);
 
 // ---- Socket.io ----
 const io = new SocketIOServer(httpServer, {
-  cors: { origin: env.cors.origin, methods: ['GET', 'POST'] },
+  // Permitir todos los orígenes para que el widget embebible funcione en cualquier web
+  cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
 initIO(io);
