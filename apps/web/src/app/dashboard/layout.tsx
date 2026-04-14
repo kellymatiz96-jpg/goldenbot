@@ -75,6 +75,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           style: { background: '#ef4444', color: '#fff' },
         });
       }
+      if (data.type === 'APPOINTMENT_REQUESTED') {
+        toast('📅 ¡Solicitud de cita! Un lead quiere agendar. Revisa la conversación.', {
+          duration: 10000,
+          style: { background: '#7c3aed', color: '#fff' },
+        });
+      }
     });
 
     socket.on('conversation:status_changed', (data: { status: string }) => {

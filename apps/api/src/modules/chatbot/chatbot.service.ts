@@ -158,6 +158,29 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     return escalationMsg;
   }
 
+  // 8b. Detectar intención de agendar cita — notifica al agente pero el bot sigue respondiendo
+  const appointmentKeywords = ['cita', 'agendar', 'reservar', 'turno', 'consulta', 'quiero ir', 'cuando puedo', 'disponibilidad', 'appointment'];
+  const wantsAppointment = appointmentKeywords.some((kw) =>
+    incoming.content.toLowerCase().includes(kw.toLowerCase())
+  );
+
+  if (wantsAppointment && conversation.status !== 'AGENT_ACTIVE') {
+    // Notificar al agente sin parar el bot (el bot sigue recopilando datos de la cita)
+    sendPushToClient(client.id, {
+      title: '📅 Solicitud de cita',
+      body: `${lead.name || incoming.externalId} quiere agendar una cita`,
+      conversationId: conversation.id,
+    }).catch(() => {});
+
+    emitToClient(client.id, 'alert:new', {
+      type: 'APPOINTMENT_REQUESTED',
+      conversationId: conversation.id,
+      message: `${lead.name || incoming.externalId} quiere agendar una cita`,
+    });
+
+    logger.info(`[Chatbot] Solicitud de cita detectada para lead ${lead.id}`);
+  }
+
   // 9. Llamar a la IA y generar respuesta
   try {
     const aiProvider = await getAIProvider(client.id);
