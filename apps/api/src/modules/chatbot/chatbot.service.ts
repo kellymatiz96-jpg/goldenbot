@@ -301,7 +301,13 @@ Responde SOLO con una palabra: COLD, WARM o HOT`;
     : 'COLD';
 
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-  if (lead && lead.temperature !== temperature) {
+
+  // La temperatura solo sube automáticamente (COLD→WARM→HOT), nunca baja.
+  // Para bajar la temperatura, el agente lo hace manualmente desde el panel.
+  const tempOrder: Record<string, number> = { COLD: 0, WARM: 1, HOT: 2 };
+  const wouldUpgrade = tempOrder[temperature] > tempOrder[lead?.temperature ?? 'COLD'];
+
+  if (lead && wouldUpgrade) {
     await prisma.lead.update({ where: { id: leadId }, data: { temperature } });
 
     // Guardar en el historial de temperatura
@@ -309,7 +315,7 @@ Responde SOLO con una palabra: COLD, WARM o HOT`;
       data: {
         leadId,
         temperature,
-        reason: `Clasificación automática: era ${lead.temperature}, ahora ${temperature}`,
+        reason: `Clasificación automática: subió de ${lead.temperature} a ${temperature}`,
         changedBy: 'ai',
       },
     });
