@@ -205,10 +205,14 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     await saveAndEmitBotMessage(client.id, conversation.id, botReply);
 
     // 10. Clasificar temperatura en segundo plano
-    const fullText = conversation.messages.map((m) => m.content).join('\n') + '\n' + incoming.content;
-    classifyTemperature(client.id, lead.id, conversation.id, fullText).catch((err) =>
-      logger.error('Error clasificando temperatura:', err)
-    );
+    // Solo clasificar a partir del 2do mensaje del usuario (no con un simple "Hola")
+    const userMessageCount = conversation.messages.filter((m) => m.role === 'user').length + 1;
+    if (userMessageCount >= 2) {
+      const fullText = conversation.messages.map((m) => m.content).join('\n') + '\n' + incoming.content;
+      classifyTemperature(client.id, lead.id, conversation.id, fullText).catch((err) =>
+        logger.error('Error clasificando temperatura:', err)
+      );
+    }
 
     return botReply;
   } catch (error) {
@@ -281,12 +285,14 @@ async function classifyTemperature(
 ) {
   const aiProvider = await getAIProvider(clientId);
 
-  const prompt = `Analiza esta conversación entre un cliente y un chatbot de ventas.
-Clasifica al cliente en UNA de estas categorías:
+  const prompt = `Analiza los mensajes del CLIENTE (no del asistente) en esta conversación con un chatbot de ventas.
+Clasifica al cliente en UNA de estas categorías basándote SOLO en lo que escribió el cliente:
 
-- COLD: Solo está explorando o saludando, sin interés claro en comprar o contratar.
-- WARM: Hace preguntas sobre servicios, precios o disponibilidad. Muestra curiosidad pero aún no decide.
-- HOT: Muestra interés fuerte o urgente. Incluye frases como "estoy interesada", "me gustaría", "quiero reservar", "¿cuándo puedo ir?", "¿tienen disponibilidad?", pide agendar cita, pide cotización, o dice que quiere proceder. Ante la duda entre WARM y HOT, elige HOT.
+- COLD: Saludos simples ("Hola", "Buenos días", "Buenas"), mensajes de prueba, o frases cortas sin ninguna pregunta sobre servicios, precios o disponibilidad. Si el cliente no menciona nada concreto del negocio → COLD.
+- WARM: El cliente hace preguntas específicas sobre servicios, precios, horarios o disponibilidad. Muestra curiosidad real pero todavía no tomó una decisión.
+- HOT: El cliente muestra intención clara de comprar o contratar. Ejemplos: "quiero reservar", "me interesa", "¿cuándo puedo ir?", "quiero una cita", "¿tienen disponibilidad?", pide cotización, o dice que quiere proceder. Solo es HOT si hay una señal clara y directa de intención.
+
+Regla importante: ante la duda entre COLD y WARM → COLD. Ante la duda entre WARM y HOT → WARM.
 
 Conversación:
 ${conversationText}
