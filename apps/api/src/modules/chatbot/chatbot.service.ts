@@ -164,7 +164,7 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     conversionGoal.includes(w)
   );
 
-  if (isAppointmentBusiness && conversation.status !== 'AGENT_ACTIVE') {
+  if (isAppointmentBusiness) {
     const appointmentKeywords = ['cita', 'agendar', 'reservar', 'turno', 'consulta', 'quiero ir', 'cuando puedo', 'disponibilidad'];
     const wantsAppointment = appointmentKeywords.some((kw) =>
       incoming.content.toLowerCase().includes(kw.toLowerCase())
