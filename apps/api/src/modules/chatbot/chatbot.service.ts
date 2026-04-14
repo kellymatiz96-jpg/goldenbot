@@ -284,9 +284,9 @@ async function classifyTemperature(
   const prompt = `Analiza esta conversación entre un cliente y un chatbot de ventas.
 Clasifica al cliente en UNA de estas categorías:
 
-- COLD: Solo está explorando, no hay intención de compra clara
-- WARM: Muestra interés, hace preguntas específicas sobre productos/precios
-- HOT: Quiere comprar, pide cotización, horario de cita, o está listo para decidir
+- COLD: Solo está explorando o saludando, sin interés claro en comprar o contratar.
+- WARM: Hace preguntas sobre servicios, precios o disponibilidad. Muestra curiosidad pero aún no decide.
+- HOT: Muestra interés fuerte o urgente. Incluye frases como "estoy interesada", "me gustaría", "quiero reservar", "¿cuándo puedo ir?", "¿tienen disponibilidad?", pide agendar cita, pide cotización, o dice que quiere proceder. Ante la duda entre WARM y HOT, elige HOT.
 
 Conversación:
 ${conversationText}

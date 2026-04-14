@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
@@ -10,6 +10,36 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+
+// Reproduce un sonido de notificación usando Web Audio API (sin archivos externos)
+function playNotificationSound(type: 'alert' | 'message' = 'alert') {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'alert') {
+      // Dos pitidos cortos para alertas urgentes
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.4);
+    } else {
+      // Un pitido suave para mensajes nuevos
+      oscillator.frequency.setValueAtTime(660, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.3);
+    }
+  } catch {
+    // Si el navegador bloquea el audio (sin interacción previa), ignorar silenciosamente
+  }
+}
 
 interface NavItemProps {
   href: string;
@@ -26,6 +56,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isAuthenticated, loadFromStorage, logout } = useAuthStore();
   const [pendingAgentCount, setPendingAgentCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Desbloquear audio en el primer clic del usuario (política de navegadores)
+  const audioUnlocked = useRef(false);
+  useEffect(() => {
+    const unlock = () => { audioUnlocked.current = true; };
+    window.addEventListener('click', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true });
+    return () => {
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+  }, []);
 
   useEffect(() => {
     loadFromStorage();
@@ -64,23 +105,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     socket.on('alert:new', (data: { type: string; message: string }) => {
       if (data.type === 'HUMAN_REQUESTED') {
         setPendingAgentCount((prev) => prev + 1);
+        if (audioUnlocked.current) playNotificationSound('alert');
         toast('🔔 ¡Atención requerida! Un lead solicita hablar con un agente.', {
           duration: 8000,
           style: { background: '#f97316', color: '#fff' },
         });
       }
       if (data.type === 'HOT_LEAD') {
+        if (audioUnlocked.current) playNotificationSound('alert');
         toast('🔥 ¡Lead caliente detectado! Un prospecto está listo para comprar.', {
           duration: 8000,
           style: { background: '#ef4444', color: '#fff' },
         });
       }
       if (data.type === 'APPOINTMENT_REQUESTED') {
+        if (audioUnlocked.current) playNotificationSound('alert');
         toast('📅 ¡Solicitud de cita! Un lead quiere agendar. Revisa la conversación.', {
           duration: 10000,
           style: { background: '#7c3aed', color: '#fff' },
         });
       }
+    });
+
+    socket.on('message:new', () => {
+      if (audioUnlocked.current) playNotificationSound('message');
     });
 
     socket.on('conversation:status_changed', (data: { status: string }) => {
