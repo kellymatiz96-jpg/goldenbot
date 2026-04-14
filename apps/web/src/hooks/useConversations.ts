@@ -150,25 +150,24 @@ export function useConversationDetail(conversationId: string | null) {
   const [isLoading, setIsLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
-  useEffect(() => {
+  const fetchDetail = useCallback(async () => {
     if (!conversationId) return;
-
-    const fetch = async () => {
-      setIsLoading(true);
-      try {
-        const { data } = await api.get(`/conversations/${conversationId}`);
-        setConversation(data.data);
-      } catch {
-        toast.error('Error al cargar la conversación');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetch();
+    setIsLoading(true);
+    try {
+      const { data } = await api.get(`/conversations/${conversationId}`);
+      setConversation(data.data);
+    } catch {
+      toast.error('Error al cargar la conversación');
+    } finally {
+      setIsLoading(false);
+    }
   }, [conversationId]);
 
-  // Escuchar mensajes nuevos en esta conversación específica
+  useEffect(() => {
+    fetchDetail();
+  }, [fetchDetail]);
+
+  // Escuchar mensajes nuevos y cambios de estado en esta conversación
   useEffect(() => {
     if (!conversationId) return;
 
@@ -186,6 +185,15 @@ export function useConversationDetail(conversationId: string | null) {
       setConversation((prev) =>
         prev ? { ...prev, messages: [...prev.messages, message] } : prev
       );
+    });
+
+    // Actualizar el estado del detalle cuando cambia (takeover / release)
+    socket.on('conversation:status_changed', (data: { conversationId: string; status: string }) => {
+      if (data.conversationId === conversationId) {
+        setConversation((prev) =>
+          prev ? { ...prev, status: data.status as ConversationDetail['status'] } : prev
+        );
+      }
     });
 
     return () => {
@@ -206,5 +214,5 @@ export function useConversationDetail(conversationId: string | null) {
     }
   };
 
-  return { conversation, isLoading, sendAgentMessage };
+  return { conversation, isLoading, sendAgentMessage, refetch: fetchDetail };
 }

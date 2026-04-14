@@ -84,13 +84,21 @@ export async function takeOverConversation(
     throw new AppError('Conversación no encontrada', 404);
   }
 
-  return prisma.conversation.update({
+  const updated = await prisma.conversation.update({
     where: { id: conversationId },
     data: {
       status: ConversationStatus.AGENT_ACTIVE,
       assignedAgentId: agentId,
     },
   });
+
+  try {
+    const payload = { conversationId, status: 'AGENT_ACTIVE' };
+    getIO().to(`client:${clientId}`).emit('conversation:status_changed', payload);
+    getIO().to(`conversation:${conversationId}`).emit('conversation:status_changed', payload);
+  } catch { /* ignorar si socket no disponible */ }
+
+  return updated;
 }
 
 export async function sendAgentMessage(
@@ -167,13 +175,21 @@ export async function releaseConversation(clientId: string, conversationId: stri
     throw new AppError('Conversación no encontrada', 404);
   }
 
-  return prisma.conversation.update({
+  const updated = await prisma.conversation.update({
     where: { id: conversationId },
     data: {
       status: ConversationStatus.BOT_ACTIVE,
       assignedAgentId: null,
     },
   });
+
+  try {
+    const payload = { conversationId, status: 'BOT_ACTIVE' };
+    getIO().to(`client:${clientId}`).emit('conversation:status_changed', payload);
+    getIO().to(`conversation:${conversationId}`).emit('conversation:status_changed', payload);
+  } catch { /* ignorar si socket no disponible */ }
+
+  return updated;
 }
 
 export async function getDashboardMetrics(clientId: string) {

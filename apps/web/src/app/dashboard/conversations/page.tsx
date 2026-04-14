@@ -30,7 +30,7 @@ export default function ConversationsPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('ALL');
 
-  const { conversation: detail, isLoading: detailLoading, sendAgentMessage } = useConversationDetail(selectedId);
+  const { conversation: detail, isLoading: detailLoading, sendAgentMessage, refetch: refetchDetail } = useConversationDetail(selectedId);
   const [agentInput, setAgentInput] = useState('');
 
   const agentPendingCount = conversations.filter((c) => c.status === 'AGENT_ACTIVE').length;
@@ -238,11 +238,11 @@ export default function ConversationsPage() {
               </div>
               <div className="flex-shrink-0">
                 {detail.status === 'BOT_ACTIVE' ? (
-                  <Button size="sm" variant="primary" onClick={() => takeOver(detail.id)}>
+                  <Button size="sm" variant="primary" onClick={async () => { await takeOver(detail.id); refetchDetail(); }}>
                     🎧 Tomar control
                   </Button>
                 ) : (
-                  <Button size="sm" variant="secondary" onClick={() => release(detail.id)}>
+                  <Button size="sm" variant="secondary" onClick={async () => { await release(detail.id); refetchDetail(); }}>
                     🤖 Devolver bot
                   </Button>
                 )}
