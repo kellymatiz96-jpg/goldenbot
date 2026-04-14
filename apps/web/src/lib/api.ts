@@ -17,15 +17,52 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor: si el token expiró (401), redirige al login
+// Interceptor: si el token expiró (401), intenta renovarlo con el refresh token
+// Solo cierra sesión si el refresh también falla
+let isRefreshing = false;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('goldenbot_token');
-      localStorage.removeItem('goldenbot_refresh_token');
-      localStorage.removeItem('goldenbot_user');
-      window.location.href = '/login';
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      typeof window !== 'undefined'
+    ) {
+      // Evitar bucle infinito si el propio endpoint de refresh da 401
+      if (originalRequest.url?.includes('/auth/refresh')) {
+        localStorage.removeItem('goldenbot_token');
+        localStorage.removeItem('goldenbot_refresh_token');
+        localStorage.removeItem('goldenbot_user');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) return Promise.reject(error);
+      isRefreshing = true;
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('goldenbot_refresh_token');
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const { data } = await api.post('/auth/refresh', { refreshToken });
+        const newToken = data.data?.accessToken;
+        if (!newToken) throw new Error('No new token');
+
+        localStorage.setItem('goldenbot_token', newToken);
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        isRefreshing = false;
+        return api(originalRequest);
+      } catch {
+        isRefreshing = false;
+        localStorage.removeItem('goldenbot_token');
+        localStorage.removeItem('goldenbot_refresh_token');
+        localStorage.removeItem('goldenbot_user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
