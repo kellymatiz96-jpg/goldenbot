@@ -39,7 +39,7 @@ export function useConversations(clientId: string | null) {
   const fetchConversations = useCallback(async () => {
     try {
       const { data } = await api.get('/conversations');
-      setConversations(data.data.conversations);
+      setConversations(data.data?.conversations ?? []);
     } catch {
       toast.error('Error al cargar las conversaciones');
     } finally {
@@ -67,11 +67,29 @@ export function useConversations(clientId: string | null) {
     });
 
     // Nuevo mensaje llega: actualizar la lista
-    socket.on('conversation:new_message', (data: { conversationId: string; message: Message }) => {
+    // El backend envía: { conversationId, role, content, createdAt }
+    socket.on('conversation:new_message', (data: {
+      conversationId: string;
+      role?: string;
+      content?: string;
+      createdAt?: string;
+      message?: Message;
+    }) => {
+      // Soportar tanto el formato plano como el anidado
+      const msg: Message | null = data.message ?? (data.content ? {
+        id: Date.now().toString(),
+        content: data.content,
+        role: (data.role ?? 'bot') as Message['role'],
+        isRead: false,
+        createdAt: data.createdAt ?? new Date().toISOString(),
+      } : null);
+
+      if (!msg) return;
+
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === data.conversationId
-            ? { ...conv, messages: [data.message], lastMessageAt: data.message.createdAt }
+            ? { ...conv, messages: [msg], lastMessageAt: msg.createdAt }
             : conv
         )
       );
