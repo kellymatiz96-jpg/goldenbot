@@ -12,6 +12,7 @@ interface BusinessInfoInput {
   welcomeMessage?: string;
   humanKeywords?: string[];
   extraInfo?: string;
+  conversionGoal?: string;
 }
 
 export async function getBusinessInfo(clientId: string) {

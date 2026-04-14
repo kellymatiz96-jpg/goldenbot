@@ -136,6 +136,7 @@ model BusinessInfo {
   welcomeMessage  String?          // Mensaje de bienvenida del bot
   humanKeywords   String[]         // Palabras que activan escalado a humano
   extraInfo       String?          // Información adicional para el bot
+  conversionGoal  String?          // Objetivo de conversión: qué hacer cuando el cliente está listo (cita, visita, pedido, llamada)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -29,6 +29,7 @@ const businessInfoSchema = z.object({
   welcomeMessage: z.string().optional(),
   humanKeywords: z.array(z.string()).optional(),
   extraInfo: z.string().optional(),
+  conversionGoal: z.string().optional(),
 });
 
 // GET /client/me — devuelve el slug del cliente actual

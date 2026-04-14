@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(node -e \"require\\('socket.io-client'\\)\")"
+      "Bash(node -e \"require\\('socket.io-client'\\)\")",
+      "Bash(npx prisma:*)"
     ]
   }
 }

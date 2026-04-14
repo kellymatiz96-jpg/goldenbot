@@ -16,6 +16,7 @@ const schema = z.object({
   prices: z.string().optional(),
   schedule: z.string().optional(),
   location: z.string().optional(),
+  conversionGoal: z.string().optional(),
   welcomeMessage: z.string().optional(),
   humanKeywords: z.string().optional(),
   extraInfo: z.string().optional(),
@@ -62,6 +63,7 @@ export default function BusinessSettingsPage() {
             prices: info.prices || '',
             schedule: info.schedule || '',
             location: info.location || '',
+            conversionGoal: info.conversionGoal || '',
             welcomeMessage: info.welcomeMessage || '',
             humanKeywords: (info.humanKeywords || []).join(', '),
             extraInfo: info.extraInfo || '',
@@ -176,6 +178,20 @@ export default function BusinessSettingsPage() {
 
         {/* Configuración del bot */}
         <Section title="Configuración del chatbot" icon="🤖">
+          <div>
+            <label className="label">¿Cuál es el objetivo principal del bot?</label>
+            <select className="input" {...register('conversionGoal')}>
+              <option value="">— Selecciona el tipo de negocio —</option>
+              <option value="APPOINTMENT">Agendar citas o consultas</option>
+              <option value="VISIT">Invitar a visitar el local (tienda, restaurante, etc.)</option>
+              <option value="ORDER">Tomar pedidos o ventas por WhatsApp</option>
+              <option value="CALL">Derivar a llamada telefónica</option>
+              <option value="INFO">Solo informar (sin acción específica)</option>
+            </select>
+            <p className="text-xs text-dark-400 mt-1">
+              El bot adapta su comportamiento según el objetivo. Por ejemplo, si eliges "Agendar citas", el bot pedirá el día y hora al cliente y notificará al agente.
+            </p>
+          </div>
           <div>
             <label className="label">Mensaje de bienvenida</label>
             <textarea

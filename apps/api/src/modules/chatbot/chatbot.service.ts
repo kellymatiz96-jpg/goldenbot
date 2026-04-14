@@ -158,27 +158,34 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     return escalationMsg;
   }
 
-  // 8b. Detectar intención de agendar cita — notifica al agente pero el bot sigue respondiendo
-  const appointmentKeywords = ['cita', 'agendar', 'reservar', 'turno', 'consulta', 'quiero ir', 'cuando puedo', 'disponibilidad', 'appointment'];
-  const wantsAppointment = appointmentKeywords.some((kw) =>
-    incoming.content.toLowerCase().includes(kw.toLowerCase())
+  // 8b. Detectar intención de reserva/cita — solo si el negocio tiene ese objetivo configurado
+  const conversionGoal = businessInfo?.conversionGoal?.toLowerCase() || '';
+  const isAppointmentBusiness = ['cita', 'reserva', 'turno', 'consulta', 'agenda'].some((w) =>
+    conversionGoal.includes(w)
   );
 
-  if (wantsAppointment && conversation.status !== 'AGENT_ACTIVE') {
-    // Notificar al agente sin parar el bot (el bot sigue recopilando datos de la cita)
-    sendPushToClient(client.id, {
-      title: '📅 Solicitud de cita',
-      body: `${lead.name || incoming.externalId} quiere agendar una cita`,
-      conversationId: conversation.id,
-    }).catch(() => {});
+  if (isAppointmentBusiness && conversation.status !== 'AGENT_ACTIVE') {
+    const appointmentKeywords = ['cita', 'agendar', 'reservar', 'turno', 'consulta', 'quiero ir', 'cuando puedo', 'disponibilidad'];
+    const wantsAppointment = appointmentKeywords.some((kw) =>
+      incoming.content.toLowerCase().includes(kw.toLowerCase())
+    );
 
-    emitToClient(client.id, 'alert:new', {
-      type: 'APPOINTMENT_REQUESTED',
-      conversationId: conversation.id,
-      message: `${lead.name || incoming.externalId} quiere agendar una cita`,
-    });
+    if (wantsAppointment) {
+      // Notificar al agente sin parar el bot (el bot sigue recopilando datos de la cita)
+      sendPushToClient(client.id, {
+        title: '📅 Solicitud de cita',
+        body: `${lead.name || incoming.externalId} quiere agendar una cita`,
+        conversationId: conversation.id,
+      }).catch(() => {});
 
-    logger.info(`[Chatbot] Solicitud de cita detectada para lead ${lead.id}`);
+      emitToClient(client.id, 'alert:new', {
+        type: 'APPOINTMENT_REQUESTED',
+        conversationId: conversation.id,
+        message: `${lead.name || incoming.externalId} quiere agendar una cita`,
+      });
+
+      logger.info(`[Chatbot] Solicitud de cita detectada para lead ${lead.id}`);
+    }
   }
 
   // 9. Llamar a la IA y generar respuesta
