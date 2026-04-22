@@ -182,9 +182,11 @@ export function useConversationDetail(conversationId: string | null) {
     });
 
     socket.on('message:new', (message: Message) => {
-      setConversation((prev) =>
-        prev ? { ...prev, messages: [...prev.messages, message] } : prev
-      );
+      setConversation((prev) => {
+        if (!prev) return prev;
+        if (prev.messages.some((m) => m.id === message.id)) return prev;
+        return { ...prev, messages: [...prev.messages, message] };
+      });
     });
 
     // Actualizar el estado del detalle cuando cambia (takeover / release)
