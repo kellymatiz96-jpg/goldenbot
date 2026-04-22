@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useConversations, useConversationDetail } from '@/hooks/useConversations';
 import { Badge } from '@/components/ui/Badge';
@@ -32,6 +32,11 @@ export default function ConversationsPage() {
 
   const { conversation: detail, isLoading: detailLoading, sendAgentMessage, refetch: refetchDetail } = useConversationDetail(selectedId);
   const [agentInput, setAgentInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [detail?.messages]);
 
   const agentPendingCount = conversations.filter((c) => c.status === 'AGENT_ACTIVE').length;
 
@@ -254,7 +259,7 @@ export default function ConversationsPage() {
             <div className="px-4 py-2 bg-orange-50 border-b border-orange-200 flex items-center gap-2">
               <span className="text-orange-500 text-sm">🎧</span>
               <p className="text-xs text-orange-700 font-medium">
-                Esta persona solicitó hablar con un agente — haz clic en "Tomar control" para responder
+                Estás atendiendo esta conversación como agente — responde usando el cuadro de texto de abajo
               </p>
             </div>
           )}
@@ -268,6 +273,7 @@ export default function ConversationsPage() {
                 <MessageBubble key={msg.id} message={msg} />
               ))
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Caja de respuesta */}
