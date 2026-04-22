@@ -64,6 +64,12 @@ enum RemarketingStatus {
   FAILED     // Falló el envío
 }
 
+enum AppointmentStatus {
+  PENDING    // Recién creada, esperando confirmación del agente
+  CONFIRMED  // Confirmada
+  CANCELLED  // Cancelada
+}
+
 // ============================================
 // CLIENTES (los clientes del superadmin)
 // ============================================
@@ -88,6 +94,7 @@ model Client {
   aiConfig      AIConfig?
   alerts        Alert[]
   remarketingCampaigns RemarketingCampaign[]
+  appointments  Appointment[]
 
   @@map("clients")
 }
@@ -189,6 +196,7 @@ model Lead {
   conversations    Conversation[]
   temperatureLog   TemperatureLog[]
   remarketingQueue RemarketingQueue[]
+  appointments     Appointment[]
 
   @@unique([clientId, externalId, source]) // Mismo contacto no se duplica
   @@map("leads")
@@ -233,7 +241,8 @@ model Conversation {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  messages Message[]
+  messages     Message[]
+  appointments Appointment[]
 
   @@map("conversations")
 }
@@ -364,9 +373,35 @@ model Alert {
   title     String
   message   String
   isRead    Boolean   @default(false)
-  metadata  Json?     // Datos adicionales (leadId, conversationId, etc.)
+  metadata  Json?
 
   createdAt DateTime @default(now())
 
   @@map("alerts")
+}
+
+// ============================================
+// CITAS (agendadas por el chatbot)
+// ============================================
+
+model Appointment {
+  id             String            @id @default(cuid())
+  clientId       String
+  client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  leadId         String
+  lead           Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  status          AppointmentStatus @default(PENDING)
+  patientName     String?   // Nombre del cliente (puede diferir del lead)
+  service         String?   // Servicio solicitado
+  appointmentDate String?   // Texto libre: "viernes 25 de abril", "mañana"
+  appointmentTime String?   // Texto libre: "10am", "a las 3 de la tarde"
+  notes           String?   // Notas adicionales del bot o del agente
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("appointments")
 }

@@ -5,6 +5,7 @@ import { buildSystemPrompt, buildChatMessages } from '../ai/prompt.builder';
 import { logger } from '../../shared/utils/logger';
 import { markLeadAsResponded } from '../remarketing/remarketing.service';
 import { sendPushToClient } from '../notifications/notifications.service';
+import { tryExtractAppointment } from '../appointments/appointments.service';
 
 export interface IncomingMessage {
   channelType: 'WHATSAPP' | 'INSTAGRAM' | 'WEBCHAT';
@@ -212,6 +213,23 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
       classifyTemperature(client.id, lead.id, conversation.id, fullText).catch((err) =>
         logger.error('Error clasificando temperatura:', err)
       );
+    }
+
+    // 11. Si es negocio de citas, intentar detectar si ya se recopiló toda la info
+    if (isAppointmentBusiness) {
+      const allMessages = [
+        ...conversation.messages.map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user', content: incoming.content },
+        { role: 'bot', content: botReply },
+      ];
+      const aiProvider = await getAIProvider(client.id);
+      tryExtractAppointment(
+        client.id,
+        lead.id,
+        conversation.id,
+        allMessages,
+        (prompt) => aiProvider.classify(prompt)
+      ).catch(() => {});
     }
 
     return botReply;
