@@ -161,9 +161,9 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
 
   // 8b. Detectar intención de reserva/cita — solo si el negocio tiene ese objetivo configurado
   const conversionGoal = businessInfo?.conversionGoal?.toLowerCase() || '';
-  const isAppointmentBusiness = ['cita', 'reserva', 'turno', 'consulta', 'agenda'].some((w) =>
-    conversionGoal.includes(w)
-  );
+  const isAppointmentBusiness =
+    conversionGoal === 'appointment' ||
+    ['cita', 'reserva', 'turno', 'consulta', 'agenda'].some((w) => conversionGoal.includes(w));
 
   if (isAppointmentBusiness) {
     const appointmentKeywords = ['cita', 'agendar', 'reservar', 'turno', 'consulta', 'quiero ir', 'cuando puedo', 'disponibilidad'];

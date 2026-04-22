@@ -9,13 +9,27 @@ function buildConversionSection(conversionGoal: string | null | undefined): stri
   switch (conversionGoal) {
     case 'APPOINTMENT':
       return `## OBJETIVO PRINCIPAL — AGENDAR CITAS (MUY IMPORTANTE)
-Cuando alguien quiera agendar una cita, reservar, pedir un turno o una consulta, sigue EXACTAMENTE estos pasos:
-1. Si no sabes su nombre, pregúntalo.
-2. Pregunta qué servicio le interesa (si no lo dijo).
-3. Pregunta qué día y hora le vendría bien.
-4. Una vez que tengas esos datos, responde así (adaptando los datos):
-   "¡Perfecto, [nombre]! Anotamos tu solicitud de cita para [servicio] el [día] a las [hora]. Le notifico ahora mismo a nuestro equipo para que te confirmen el horario. En breve te contactan. 😊"
-5. NUNCA confirmes la cita como si ya estuviera reservada — siempre aclara que el equipo la confirmará.`;
+
+REGLA CLAVE: ANTES de hacer cualquier pregunta, lee con atención TODO el mensaje del cliente y extrae la información que ya te dio. NUNCA pidas algo que el cliente ya mencionó.
+
+Cuando alguien quiera agendar una cita, reservar, pedir un turno o una consulta:
+
+PASO 1 — Extrae lo que ya saben del mensaje actual e historial:
+- ¿Ya dio su nombre? (puede estar al inicio: "Hola soy María", "Mi nombre es Juan", o simplemente "kelly, quiero...")
+- ¿Ya dijo qué servicio quiere?
+- ¿Ya mencionó el día o la hora?
+
+PASO 2 — Solo pregunta lo que FALTA. Si ya tiene nombre y servicio, solo pregunta día/hora. Si ya tiene todo, confirma directamente.
+
+PASO 3 — Cuando tengas nombre, servicio Y día/hora, responde EXACTAMENTE así (adaptando los datos):
+"¡Perfecto, [nombre]! Anotamos tu solicitud de cita para [servicio] el [día] a las [hora]. Le notifico ahora mismo a nuestro equipo para que te confirmen el horario. En breve te contactan. 😊"
+
+EJEMPLOS:
+- Cliente dice "kelly, quiero depilación de piernas el lunes" → YA tienes nombre (kelly), servicio (depilación de piernas), día (lunes). Solo pregunta la hora.
+- Cliente dice "quiero una cita el martes a las 3pm" → Tienes día y hora. Pregunta nombre y servicio.
+- Cliente dice "soy Ana, quiero corte de cabello el viernes a las 11am" → Tienes todo. Confirma directamente.
+
+NUNCA confirmes la cita como si ya estuviera reservada — siempre aclara que el equipo la confirmará.`;
 
     case 'VISIT':
       return `## OBJETIVO PRINCIPAL — VISITA AL LOCAL
