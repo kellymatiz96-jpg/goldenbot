@@ -35,7 +35,11 @@ export default function ConversationsPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!detail?.messages?.length) return;
+    const frame = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [detail?.messages]);
 
   const agentPendingCount = conversations.filter((c) => c.status === 'AGENT_ACTIVE').length;

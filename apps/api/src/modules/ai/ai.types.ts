@@ -13,7 +13,7 @@ export interface AIResponse {
 
 export interface AIProvider {
   chat(messages: AIMessage[], options?: AIOptions): Promise<AIResponse>;
-  classify(prompt: string): Promise<string>;
+  classify(prompt: string, maxTokens?: number): Promise<string>;
 }
 
 export interface AIOptions {

@@ -28,11 +28,11 @@ export class OpenAIProvider implements AIProvider {
     return { content, tokensUsed, model: this.model };
   }
 
-  async classify(prompt: string): Promise<string> {
+  async classify(prompt: string, maxTokens = 300): Promise<string> {
     const response = await this.client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 100,
+      max_tokens: maxTokens,
       temperature: 0.1,
     });
 

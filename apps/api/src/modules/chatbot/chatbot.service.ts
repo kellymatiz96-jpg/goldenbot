@@ -228,7 +228,7 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
         lead.id,
         conversation.id,
         allMessages,
-        (prompt) => aiProvider.classify(prompt)
+        (prompt) => aiProvider.classify(prompt, 300)
       ).catch(() => {});
     }
 
