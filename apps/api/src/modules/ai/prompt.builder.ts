@@ -8,34 +8,27 @@ import { AIMessage } from './ai.types';
 function buildConversionSection(conversionGoal: string | null | undefined): string {
   switch (conversionGoal) {
     case 'APPOINTMENT':
-      return `## OBJETIVO PRINCIPAL — AGENDAR CITAS (MUY IMPORTANTE)
+      return `## OBJETIVO PRINCIPAL — AGENDAR CITAS
 
-REGLA CLAVE: ANTES de hacer cualquier pregunta, lee con atención TODO el mensaje del cliente y extrae la información que ya te dio. NUNCA pidas algo que el cliente ya mencionó.
+Para registrar la solicitud de cita necesitas exactamente 3 datos: NOMBRE, SERVICIO y DÍA.
+La hora NO es obligatoria — si el cliente no la da o dice "cualquier hora", está bien, el equipo confirma.
 
-Para agendar una cita necesitas 3 datos obligatorios y 1 opcional:
-- OBLIGATORIO: nombre del cliente
-- OBLIGATORIO: servicio que quiere
-- OBLIGATORIO: día o fecha aproximada (puede ser "el lunes", "esta semana", "cuando haya lugar")
-- OPCIONAL: hora preferida — si no la da, no la pidas. El equipo confirmará el horario disponible.
+REGLA ABSOLUTA ANTES DE RESPONDER:
+Lee TODOS los mensajes del historial (están arriba). Anota qué datos ya tienes:
+- ¿Nombre? Puede estar en cualquier mensaje anterior.
+- ¿Servicio? Puede estar en cualquier mensaje anterior.
+- ¿Día o preferencia de horario? Puede estar en cualquier mensaje anterior.
+Nunca pidas un dato que el cliente ya dio en un mensaje previo.
 
-PASO 1 — Extrae lo que ya está en el mensaje actual e historial:
-- ¿Ya dio su nombre? (puede estar al inicio del mensaje: "kelly, quiero...", "soy Ana...", "hola, mi nombre es...")
-- ¿Ya dijo qué servicio quiere?
-- ¿Ya mencionó algún día, fecha o preferencia de horario?
+Cuando tengas NOMBRE + SERVICIO + DÍA (o preferencia de horario), di EXACTAMENTE esto:
+"¡Listo, [nombre]! Registramos tu solicitud de cita para [servicio] [día/esta semana/cuando puedas]. Te conectamos ahora mismo con nuestro equipo para coordinar el horario. 😊"
 
-PASO 2 — Solo pregunta lo que FALTA de los 3 obligatorios. Si ya tiene los 3, confirma directamente sin pedir la hora.
+Si falta algún dato, pregunta SOLO ese dato. Ejemplos:
+- Tienes servicio y día pero no nombre → "¡Perfecto! Solo necesito tu nombre para registrarte 😊"
+- Tienes nombre y servicio pero no día → "¿Qué día o semana te vendría bien?"
+- Tienes solo el servicio → "¿Me das tu nombre y cuándo te gustaría venir?"
 
-PASO 3 — Cuando tengas nombre, servicio Y día, responde EXACTAMENTE así (adaptando los datos):
-- Si dio hora: "¡Perfecto, [nombre]! Anotamos tu solicitud de cita para [servicio] el [día] a las [hora]. Nuestro equipo te confirmará si ese horario está disponible. En breve te contactan. 😊"
-- Si no dio hora: "¡Perfecto, [nombre]! Anotamos tu solicitud de cita para [servicio] el [día]. Nuestro equipo te contactará para confirmar el horario disponible. 😊"
-
-EJEMPLOS:
-- "kelly, quiero depilación de piernas el lunes a cualquier hora" → nombre=kelly, servicio=depilación, día=lunes, hora=flexible. Tienes todo → CONFIRMA directamente.
-- "kelly, quiero depilación de piernas el lunes" → nombre=kelly, servicio=depilación, día=lunes. Tienes los 3 obligatorios → CONFIRMA sin pedir hora.
-- "quiero una cita el martes" → Tienes día. Pregunta nombre y servicio.
-- "soy Ana, quiero corte de cabello" → Tienes nombre y servicio. Pregunta el día.
-
-NUNCA confirmes la cita como si ya estuviera reservada — siempre aclara que el equipo la confirmará.`;
+NO hagas preguntas compuestas largas. Una pregunta a la vez si falta más de un dato.`;`;
 
     case 'VISIT':
       return `## OBJETIVO PRINCIPAL — VISITA AL LOCAL

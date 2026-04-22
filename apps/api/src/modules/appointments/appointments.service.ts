@@ -102,15 +102,41 @@ Responde SOLO con el JSON, sin texto adicional.`;
       },
     });
 
+    // Escalar automáticamente al agente para que confirme la cita
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { status: 'AGENT_ACTIVE' },
+    });
+
+    await prisma.alert.create({
+      data: {
+        clientId,
+        type: 'HOT_LEAD_NO_RESPONSE',
+        title: 'Solicitud de cita recibida',
+        message: `${parsed.patientName || 'Un cliente'} quiere agendar: ${parsed.service || 'servicio'} — ${parsed.appointmentDate || 'fecha pendiente'}`,
+        metadata: { conversationId, leadId, appointmentId: appointment.id },
+      },
+    });
+
     // Notificar al panel en tiempo real
     try {
-      getIO().to(`client:${clientId}`).emit('appointment:new', {
+      const io = getIO();
+      io.to(`client:${clientId}`).emit('appointment:new', {
         appointmentId: appointment.id,
         conversationId,
         patientName: appointment.patientName,
         service: appointment.service,
         appointmentDate: appointment.appointmentDate,
         appointmentTime: appointment.appointmentTime,
+      });
+      io.to(`client:${clientId}`).emit('conversation:status_changed', {
+        conversationId,
+        status: 'AGENT_ACTIVE',
+      });
+      io.to(`client:${clientId}`).emit('alert:new', {
+        type: 'HUMAN_REQUESTED',
+        conversationId,
+        message: `Cita solicitada: ${parsed.service || 'servicio'} — ${parsed.appointmentDate || 'fecha pendiente'}`,
       });
     } catch { /* ignorar si socket no disponible */ }
 
