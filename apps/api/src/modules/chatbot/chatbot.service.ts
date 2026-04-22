@@ -169,13 +169,23 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     );
 
     const aiResponse = await aiProvider.chat(messages);
-    const botReply = aiResponse.content;
+    const rawReply = aiResponse.content;
+
+    // Detectar marcador de escalación de cita y eliminarlo del mensaje visible
+    const shouldEscalate = rawReply.includes('[CONECTAR_AGENTE]');
+    const botReply = rawReply.replace('[CONECTAR_AGENTE]', '').trim();
 
     // 10. Guardar y emitir respuesta del bot
     await saveAndEmitBotMessage(client.id, conversation.id, botReply);
 
-    // 10. Clasificar temperatura en segundo plano
-    // Solo clasificar a partir del 2do mensaje del usuario (no con un simple "Hola")
+    // 11. Escalar al agente si el bot recopiló todos los datos de la cita
+    if (shouldEscalate && conversation.status !== 'AGENT_ACTIVE') {
+      handleEscalation(client.id, conversation.id, lead.id).catch((err) =>
+        logger.error('Error al escalar conversación de cita:', err)
+      );
+    }
+
+    // 12. Clasificar temperatura en segundo plano
     const userMessageCount = conversation.messages.filter((m) => m.role === 'user').length + 1;
     if (userMessageCount >= 2) {
       const fullText = conversation.messages.map((m) => m.content).join('\n') + '\n' + incoming.content;
