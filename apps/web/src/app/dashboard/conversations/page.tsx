@@ -32,12 +32,14 @@ export default function ConversationsPage() {
 
   const { conversation: detail, isLoading: detailLoading, sendAgentMessage, refetch: refetchDetail } = useConversationDetail(selectedId);
   const [agentInput, setAgentInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!detail?.messages?.length) return;
+    const el = messagesContainerRef.current;
+    if (!el) return;
     const frame = requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);
   }, [detail?.messages]);
@@ -269,7 +271,7 @@ export default function ConversationsPage() {
           )}
 
           {/* Mensajes */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {detail.messages.length === 0 ? (
               <p className="text-center text-dark-400 text-sm py-8">No hay mensajes en esta conversación</p>
             ) : (
@@ -277,7 +279,6 @@ export default function ConversationsPage() {
                 <MessageBubble key={msg.id} message={msg} />
               ))
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Caja de respuesta */}
