@@ -40,6 +40,7 @@ export async function getConversationWithMessages(clientId: string, conversation
       lead: true,
       channel: { select: { type: true } },
       assignedAgent: { select: { id: true, name: true } },
+      client: { select: { businessInfo: { select: { conversionGoal: true } } } },
       messages: {
         orderBy: { createdAt: 'asc' },
         select: {
@@ -190,6 +191,33 @@ export async function releaseConversation(clientId: string, conversationId: stri
   } catch { /* ignorar si socket no disponible */ }
 
   return updated;
+}
+
+export async function markAppointmentBooked(clientId: string, conversationId: string, booked: boolean) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { clientId: true, leadId: true },
+  });
+
+  if (!conversation || conversation.clientId !== clientId) {
+    throw new AppError('Conversación no encontrada', 404);
+  }
+
+  const lead = await prisma.lead.update({
+    where: { id: conversation.leadId },
+    data: { appointmentBooked: booked },
+    select: { id: true, appointmentBooked: true },
+  });
+
+  try {
+    getIO().to(`client:${clientId}`).emit('lead:appointment_booked', {
+      leadId: lead.id,
+      conversationId,
+      appointmentBooked: lead.appointmentBooked,
+    });
+  } catch { /* ignorar si socket no disponible */ }
+
+  return lead;
 }
 
 export async function getDashboardMetrics(clientId: string) {

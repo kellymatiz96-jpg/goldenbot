@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { useAppointments } from '@/hooks/useAppointments';
 
 // Reproduce un sonido de notificación usando Web Audio API (sin archivos externos)
 function playNotificationSound(type: 'alert' | 'message' = 'alert') {
@@ -63,7 +62,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isAuthenticated, loadFromStorage, logout } = useAuthStore();
   const [pendingAgentCount, setPendingAgentCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { pendingCount: pendingAppointments, refetch: refetchAppointments } = useAppointments();
   // Desbloquear audio en el primer clic del usuario (política de navegadores)
   const audioUnlocked = useRef(false);
   useEffect(() => {
@@ -114,14 +112,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       socket.emit('join:client', user.clientId);
     });
 
-    socket.on('appointment:new', () => {
-      refetchAppointments();
-      toast('📅 Nueva cita detectada por el chatbot. Revisá Citas para confirmar.', {
-        duration: 8000,
-        style: { background: '#7c3aed', color: '#fff' },
-      });
-    });
-
     socket.on('alert:new', (data: { type: string; message: string }) => {
       if (data.type === 'HUMAN_REQUESTED') {
         setPendingAgentCount((prev) => prev + 1);
@@ -138,13 +128,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           style: { background: '#ef4444', color: '#fff' },
         });
       }
-      if (data.type === 'APPOINTMENT_REQUESTED') {
-        if (audioUnlocked.current) playNotificationSound('alert');
-        toast('📅 ¡Solicitud de cita! Un lead quiere agendar. Revisa la conversación.', {
-          duration: 10000,
-          style: { background: '#7c3aed', color: '#fff' },
-        });
-      }
     });
 
     socket.on('message:new', () => {
@@ -158,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     });
 
     return () => { socket.disconnect(); };
-  }, [user?.clientId, loadPendingCount, refetchAppointments]);
+  }, [user?.clientId, loadPendingCount]);
 
   const handleLogout = () => {
     logout();
@@ -202,14 +185,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           label="Conversaciones"
           currentPath={pathname}
           badge={pendingAgentCount}
-          onClick={() => setSidebarOpen(false)}
-        />
-        <NavItem
-          href="/dashboard/appointments"
-          icon="📅"
-          label="Citas"
-          currentPath={pathname}
-          badge={pendingAppointments}
           onClick={() => setSidebarOpen(false)}
         />
         <p className="text-xs text-dark-500 font-semibold uppercase tracking-wider px-3 mb-2 mt-5">

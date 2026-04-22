@@ -30,7 +30,7 @@ export default function ConversationsPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('ALL');
 
-  const { conversation: detail, isLoading: detailLoading, sendAgentMessage, refetch: refetchDetail } = useConversationDetail(selectedId);
+  const { conversation: detail, isLoading: detailLoading, sendAgentMessage, toggleAppointmentBooked, refetch: refetchDetail } = useConversationDetail(selectedId);
   const [agentInput, setAgentInput] = useState('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -239,15 +239,27 @@ export default function ConversationsPage() {
                 {detail.lead.name || detail.lead.phone || detail.lead.externalId || 'Desconocido'}
               </p>
             </div>
-            {/* Fila 2: badges + botón */}
+            {/* Fila 2: badges + botones */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge variant={temperatureConfig[detail.lead.temperature].variant}>
                   {temperatureConfig[detail.lead.temperature].label}
                 </Badge>
                 <span className="text-xs text-dark-400">{channelEmoji[detail.channel.type]} {detail.channel.type}</span>
+                {detail.lead.appointmentBooked && (
+                  <Badge variant="success">📅 Agendado</Badge>
+                )}
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {detail.client?.businessInfo?.conversionGoal === 'APPOINTMENT' && (
+                  <Button
+                    size="sm"
+                    variant={detail.lead.appointmentBooked ? 'secondary' : 'primary'}
+                    onClick={toggleAppointmentBooked}
+                  >
+                    {detail.lead.appointmentBooked ? '↩ Desagendar' : '📅 Agendar'}
+                  </Button>
+                )}
                 {detail.status === 'BOT_ACTIVE' ? (
                   <Button size="sm" variant="primary" onClick={async () => { await takeOver(detail.id); refetchDetail(); }}>
                     🎧 Tomar control

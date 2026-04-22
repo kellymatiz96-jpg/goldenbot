@@ -29,6 +29,8 @@ export interface ConversationSummary {
 
 export interface ConversationDetail extends ConversationSummary {
   messages: Message[];
+  lead: ConversationSummary['lead'] & { appointmentBooked: boolean };
+  client?: { businessInfo: { conversionGoal: string | null } | null };
 }
 
 export function useConversations(clientId: string | null) {
@@ -207,7 +209,6 @@ export function useConversationDetail(conversationId: string | null) {
     if (!conversationId) return;
     try {
       const { data } = await api.post(`/conversations/${conversationId}/agent-message`, { content });
-      // Agregar el mensaje al estado local inmediatamente
       setConversation((prev) =>
         prev ? { ...prev, messages: [...prev.messages, data.data] } : prev
       );
@@ -216,5 +217,19 @@ export function useConversationDetail(conversationId: string | null) {
     }
   };
 
-  return { conversation, isLoading, sendAgentMessage, refetch: fetchDetail };
+  const toggleAppointmentBooked = async () => {
+    if (!conversationId || !conversation) return;
+    const newValue = !conversation.lead.appointmentBooked;
+    try {
+      await api.put(`/conversations/${conversationId}/appointment-booked`, { booked: newValue });
+      setConversation((prev) =>
+        prev ? { ...prev, lead: { ...prev.lead, appointmentBooked: newValue } } : prev
+      );
+      toast.success(newValue ? '📅 Lead marcado como agendado' : 'Marca de agendado removida');
+    } catch {
+      toast.error('Error al actualizar el estado');
+    }
+  };
+
+  return { conversation, isLoading, sendAgentMessage, toggleAppointmentBooked, refetch: fetchDetail };
 }

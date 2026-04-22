@@ -7,6 +7,7 @@ import {
   releaseConversation,
   sendAgentMessage,
   getDashboardMetrics,
+  markAppointmentBooked,
 } from './conversations.service';
 
 const router = Router();
@@ -81,6 +82,18 @@ router.post('/:id/release', async (req: Request, res: Response, next: NextFuncti
     const clientId = req.user!.clientId!;
     const conversation = await releaseConversation(clientId, req.params.id);
     res.json({ success: true, data: conversation });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /conversations/:id/appointment-booked — marcar/desmarcar cita agendada
+router.put('/:id/appointment-booked', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const clientId = req.user!.clientId!;
+    const booked = req.body.booked !== false;
+    const lead = await markAppointmentBooked(clientId, req.params.id, booked);
+    res.json({ success: true, data: lead });
   } catch (err) {
     next(err);
   }

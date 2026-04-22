@@ -5,7 +5,6 @@ import { buildSystemPrompt, buildChatMessages } from '../ai/prompt.builder';
 import { logger } from '../../shared/utils/logger';
 import { markLeadAsResponded } from '../remarketing/remarketing.service';
 import { sendPushToClient } from '../notifications/notifications.service';
-import { tryExtractAppointment } from '../appointments/appointments.service';
 
 export interface IncomingMessage {
   channelType: 'WHATSAPP' | 'INSTAGRAM' | 'WEBCHAT';
@@ -159,36 +158,6 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     return escalationMsg;
   }
 
-  // 8b. Detectar intención de reserva/cita — solo si el negocio tiene ese objetivo configurado
-  const conversionGoal = businessInfo?.conversionGoal?.toLowerCase() || '';
-  const isAppointmentBusiness =
-    conversionGoal === 'appointment' ||
-    ['cita', 'reserva', 'turno', 'consulta', 'agenda'].some((w) => conversionGoal.includes(w));
-
-  if (isAppointmentBusiness) {
-    const appointmentKeywords = ['cita', 'agendar', 'reservar', 'turno', 'consulta', 'quiero ir', 'cuando puedo', 'disponibilidad'];
-    const wantsAppointment = appointmentKeywords.some((kw) =>
-      incoming.content.toLowerCase().includes(kw.toLowerCase())
-    );
-
-    if (wantsAppointment) {
-      // Notificar al agente sin parar el bot (el bot sigue recopilando datos de la cita)
-      sendPushToClient(client.id, {
-        title: '📅 Solicitud de cita',
-        body: `${lead.name || incoming.externalId} quiere agendar una cita`,
-        conversationId: conversation.id,
-      }).catch(() => {});
-
-      emitToClient(client.id, 'alert:new', {
-        type: 'APPOINTMENT_REQUESTED',
-        conversationId: conversation.id,
-        message: `${lead.name || incoming.externalId} quiere agendar una cita`,
-      });
-
-      logger.info(`[Chatbot] Solicitud de cita detectada para lead ${lead.id}`);
-    }
-  }
-
   // 9. Llamar a la IA y generar respuesta
   try {
     const aiProvider = await getAIProvider(client.id);
@@ -213,23 +182,6 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
       classifyTemperature(client.id, lead.id, conversation.id, fullText).catch((err) =>
         logger.error('Error clasificando temperatura:', err)
       );
-    }
-
-    // 11. Si es negocio de citas, intentar detectar si ya se recopiló toda la info
-    if (isAppointmentBusiness) {
-      const allMessages = [
-        ...conversation.messages.map((m) => ({ role: m.role, content: m.content })),
-        { role: 'user', content: incoming.content },
-        { role: 'bot', content: botReply },
-      ];
-      const aiProvider = await getAIProvider(client.id);
-      tryExtractAppointment(
-        client.id,
-        lead.id,
-        conversation.id,
-        allMessages,
-        (prompt) => aiProvider.classify(prompt, 300)
-      ).catch(() => {});
     }
 
     return botReply;
