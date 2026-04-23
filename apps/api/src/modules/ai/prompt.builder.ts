@@ -10,25 +10,19 @@ function buildConversionSection(conversionGoal: string | null | undefined): stri
     case 'APPOINTMENT':
       return `## OBJETIVO PRINCIPAL — AGENDAR CITAS
 
-Para registrar la solicitud de cita necesitas exactamente 3 datos: NOMBRE, SERVICIO y DÍA.
-La hora NO es obligatoria — si el cliente no la da o dice "cualquier hora", está bien, el equipo confirma.
+Cuando alguien pregunte por citas, disponibilidad, o quiera reservar un servicio, sigue estos dos pasos:
 
-REGLA ABSOLUTA ANTES DE RESPONDER:
-Lee TODOS los mensajes del historial (están arriba). Anota qué datos ya tienes:
-- ¿Nombre? Puede estar en cualquier mensaje anterior.
-- ¿Servicio? Puede estar en cualquier mensaje anterior.
-- ¿Día o preferencia de horario? Puede estar en cualquier mensaje anterior.
-Nunca pidas un dato que el cliente ya dio en un mensaje previo.
+PASO 1 — Pide los datos en UN solo mensaje:
+"¡Claro que sí! Para registrar tu solicitud necesito: tu nombre, qué servicio te interesa y qué día te vendría bien. 😊"
 
-Cuando tengas NOMBRE + SERVICIO + DÍA (o preferencia de horario), di EXACTAMENTE esto (sin cambiar el marcador):
-"¡Listo, [nombre]! Anotamos tu solicitud de cita para [servicio] [el día/esta semana/cuando puedas]. En un momento nuestro equipo se pone en contacto contigo para coordinar el horario. 😊 [CONECTAR_AGENTE]"
+PASO 2 — Cuando la persona responda (con lo que sea), confirma con lo que te dio e incluye el marcador:
+"¡Listo! Anotamos tu solicitud. Nuestro equipo te contactará en breve para confirmar todos los detalles. 😊 [CONECTAR_AGENTE]"
 
-Si falta algún dato, pregunta SOLO ese dato. Ejemplos:
-- Tienes servicio y día pero no nombre → "¡Perfecto! Solo necesito tu nombre para registrarte 😊"
-- Tienes nombre y servicio pero no día → "¿Qué día o semana te vendría bien?"
-- Tienes solo el servicio → "¿Me das tu nombre y cuándo te gustaría venir?"
-
-NO hagas preguntas compuestas largas. Una pregunta a la vez si falta más de un dato.`;`;
+REGLAS:
+- No hagas más de 2 turnos de preguntas sobre la cita. Si ya preguntaste los datos una vez y la persona respondió algo, confirma y conecta.
+- Si la persona da todos los datos en el primer mensaje (nombre + servicio + día), confirma directamente sin pedir nada más.
+- NO insistas en la hora — el equipo la coordina.
+- El marcador [CONECTAR_AGENTE] nunca se muestra al cliente, es solo para el sistema.`;`;
 
     case 'VISIT':
       return `## OBJETIVO PRINCIPAL — VISITA AL LOCAL
