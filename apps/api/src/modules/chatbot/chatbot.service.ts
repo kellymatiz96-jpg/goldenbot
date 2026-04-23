@@ -158,6 +158,29 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     return escalationMsg;
   }
 
+  // 8b. Si el negocio agenda citas y el bot YA pidió los datos, confirmar y escalar sin IA
+  const conversionGoal = businessInfo?.conversionGoal?.toLowerCase() || '';
+  const isAppointmentBusiness = conversionGoal === 'appointment' ||
+    ['cita', 'reserva', 'turno', 'consulta', 'agenda'].some((w) => conversionGoal.includes(w));
+
+  if (isAppointmentBusiness) {
+    const lastBotMsg = conversation.messages
+      .filter((m) => m.role === 'bot')
+      .at(-1)?.content || '';
+
+    // Detectar si el bot ya preguntó por los datos de la cita
+    const botAlreadyAskedForData =
+      lastBotMsg.includes('registrar tu solicitud') ||
+      (lastBotMsg.includes('nombre') && lastBotMsg.includes('servicio'));
+
+    if (botAlreadyAskedForData) {
+      const confirmMsg = '¡Perfecto! Ya tenemos tu solicitud. Nuestro equipo te contactará en breve para confirmar todos los detalles. 😊';
+      await saveAndEmitBotMessage(client.id, conversation.id, confirmMsg);
+      await handleEscalation(client.id, conversation.id, lead.id);
+      return confirmMsg;
+    }
+  }
+
   // 9. Llamar a la IA y generar respuesta
   try {
     const aiProvider = await getAIProvider(client.id);
