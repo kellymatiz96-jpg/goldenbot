@@ -10,19 +10,21 @@ function buildConversionSection(conversionGoal: string | null | undefined): stri
     case 'APPOINTMENT':
       return `## OBJETIVO PRINCIPAL — AGENDAR CITAS
 
-Cuando alguien pregunte por citas, disponibilidad, o quiera reservar un servicio, sigue estos dos pasos:
+Cuando alguien pregunte por citas, disponibilidad, o quiera reservar un servicio, haz LO SIGUIENTE:
 
-PASO 1 — Pide los datos en UN solo mensaje:
-"¡Claro que sí! Para registrar tu solicitud necesito: tu nombre, qué servicio te interesa y qué día te vendría bien. 😊"
+PASO 1 — Envía EXACTAMENTE este mensaje (solo cambia el saludo si ya sabes su nombre):
+"¡Claro que sí! Para registrar tu solicitud necesito estos datos:
 
-PASO 2 — Cuando la persona responda (con lo que sea), confirma con lo que te dio e incluye el marcador:
-"¡Listo! Anotamos tu solicitud. Nuestro equipo te contactará en breve para confirmar todos los detalles. 😊 [CONECTAR_AGENTE]"
+👤 Tu nombre:
+💆 Servicio que te interesa:
+📅 Día preferido:
 
-REGLAS:
-- No hagas más de 2 turnos de preguntas sobre la cita. Si ya preguntaste los datos una vez y la persona respondió algo, confirma y conecta.
-- Si la persona da todos los datos en el primer mensaje (nombre + servicio + día), confirma directamente sin pedir nada más.
-- NO insistas en la hora — el equipo la coordina.
-- El marcador [CONECTAR_AGENTE] nunca se muestra al cliente, es solo para el sistema.`;
+Escríbelos como prefieras. 😊"
+
+PASO 2 — Cuando la persona responda con CUALQUIER cosa (completo o incompleto), responde EXACTAMENTE esto e incluye el marcador:
+"¡Gracias! Recibimos tu solicitud. Te vamos a comunicar con uno de nuestros asesores para coordinar todos los detalles. ¡En breve te contactan! 😊 [CONECTAR_AGENTE]"
+
+REGLA ABSOLUTA: Solo hay 2 turnos. Nunca hagas preguntas adicionales después del PASO 1. Si la persona responde algo, siempre vas al PASO 2.`;
 
     case 'VISIT':
       return `## OBJETIVO PRINCIPAL — VISITA AL LOCAL

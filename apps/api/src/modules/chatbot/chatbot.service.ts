@@ -168,13 +168,11 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
       .filter((m) => m.role === 'bot')
       .at(-1)?.content || '';
 
-    // Detectar si el bot ya preguntó por los datos de la cita
-    const botAlreadyAskedForData =
-      lastBotMsg.includes('registrar tu solicitud') ||
-      (lastBotMsg.includes('nombre') && lastBotMsg.includes('servicio'));
+    // Detectar si el bot ya envió el formulario de solicitud de cita
+    const botAlreadyAskedForData = lastBotMsg.includes('👤 Tu nombre:');
 
     if (botAlreadyAskedForData) {
-      const confirmMsg = '¡Perfecto! Ya tenemos tu solicitud. Nuestro equipo te contactará en breve para confirmar todos los detalles. 😊';
+      const confirmMsg = '¡Gracias! Recibimos tu solicitud. Te vamos a comunicar con uno de nuestros asesores para coordinar todos los detalles. ¡En breve te contactan! 😊';
       await saveAndEmitBotMessage(client.id, conversation.id, confirmMsg);
       await handleEscalation(client.id, conversation.id, lead.id);
       return confirmMsg;
