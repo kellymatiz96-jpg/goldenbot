@@ -202,7 +202,7 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     await saveAndEmitBotMessage(client.id, conversation.id, botReply);
 
     // 11. Escalar al agente si el bot recopiló todos los datos de la cita
-    if (shouldEscalate && conversation.status !== 'AGENT_ACTIVE') {
+    if (shouldEscalate) {
       handleEscalation(client.id, conversation.id, lead.id).catch((err) =>
         logger.error('Error al escalar conversación de cita:', err)
       );
