@@ -22,7 +22,7 @@ REGLAS:
 - No hagas más de 2 turnos de preguntas sobre la cita. Si ya preguntaste los datos una vez y la persona respondió algo, confirma y conecta.
 - Si la persona da todos los datos en el primer mensaje (nombre + servicio + día), confirma directamente sin pedir nada más.
 - NO insistas en la hora — el equipo la coordina.
-- El marcador [CONECTAR_AGENTE] nunca se muestra al cliente, es solo para el sistema.`;`;
+- El marcador [CONECTAR_AGENTE] nunca se muestra al cliente, es solo para el sistema.`;
 
     case 'VISIT':
       return `## OBJETIVO PRINCIPAL — VISITA AL LOCAL
