@@ -217,12 +217,6 @@ export default function LeadsPage() {
         <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : !data || data.leads.length === 0 ? (
-        <div className="card text-center py-12">
-          <div className="text-5xl mb-3">🎯</div>
-          <h3 className="font-semibold text-dark-800 mb-2">No hay leads aún</h3>
-          <p className="text-dark-400 text-sm">Los leads aparecen aquí cuando alguien escribe a tu chatbot</p>
-        </div>
       ) : filter === 'BOOKED' ? (
         /* Vista especial para Agendados */
         <>
@@ -287,6 +281,12 @@ export default function LeadsPage() {
             </div>
           )}
         </>
+      ) : !data || data.leads.length === 0 ? (
+        <div className="card text-center py-12">
+          <div className="text-5xl mb-3">🎯</div>
+          <h3 className="font-semibold text-dark-800 mb-2">No hay leads aún</h3>
+          <p className="text-dark-400 text-sm">Los leads aparecen aquí cuando alguien escribe a tu chatbot</p>
+        </div>
       ) : (
         <>
           {/* Tarjetas móvil */}
