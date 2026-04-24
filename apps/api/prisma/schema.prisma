@@ -189,6 +189,7 @@ model Lead {
   appointmentBooked     Boolean     @default(false)
   appointmentBookedAt   DateTime?
   appointmentNotes      String?
+  appointmentStatus     String?     // PENDING | ATTENDED | CANCELLED (null = sin cita)
   isActive              Boolean     @default(true)
   notes                 String?
   tags                  String[]

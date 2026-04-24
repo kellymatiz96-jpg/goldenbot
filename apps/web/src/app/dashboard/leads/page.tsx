@@ -16,6 +16,7 @@ interface Lead {
   appointmentBooked: boolean;
   appointmentBookedAt: string | null;
   appointmentNotes: string | null;
+  appointmentStatus: 'PENDING' | 'ATTENDED' | 'CANCELLED' | null;
   createdAt: string;
   updatedAt: string;
   conversations: Array<{
@@ -59,13 +60,16 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(1);
+  const [showHistory, setShowHistory] = useState(false);
 
   const fetchLeads = useCallback(async () => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page) });
       if (filter === 'BOOKED') {
         params.set('appointmentBooked', 'true');
+        params.set('appointmentStatus', showHistory ? 'HISTORY' : 'PENDING');
       } else if (filter) {
         params.set('temperature', filter);
       }
@@ -77,7 +81,7 @@ export default function LeadsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, filter, search]);
+  }, [page, filter, search, showHistory]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
@@ -110,6 +114,16 @@ export default function LeadsPage() {
       fetchLeads();
     } catch {
       toast.error('Error al desmarcar');
+    }
+  };
+
+  const markStatus = async (lead: Lead, status: 'ATTENDED' | 'CANCELLED') => {
+    try {
+      await api.patch(`/leads/${lead.id}/appointment-status`, { status });
+      toast.success(status === 'ATTENDED' ? '✓ Marcado como atendido' : 'Cita cancelada');
+      fetchLeads();
+    } catch {
+      toast.error('Error al actualizar estado');
     }
   };
 
@@ -212,11 +226,31 @@ export default function LeadsPage() {
       ) : filter === 'BOOKED' ? (
         /* Vista especial para Agendados */
         <>
+          {/* Toggle pendientes / historial */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => { setShowHistory(false); setPage(1); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${!showHistory ? 'bg-primary-500 text-white' : 'bg-white border border-dark-200 text-dark-600 hover:bg-dark-50'}`}
+            >
+              📅 Pendientes
+            </button>
+            <button
+              onClick={() => { setShowHistory(true); setPage(1); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${showHistory ? 'bg-primary-500 text-white' : 'bg-white border border-dark-200 text-dark-600 hover:bg-dark-50'}`}
+            >
+              🗂️ Historial
+            </button>
+          </div>
+
           {data.leads.length === 0 ? (
             <div className="card text-center py-12">
-              <div className="text-5xl mb-3">📅</div>
-              <h3 className="font-semibold text-dark-800 mb-2">No hay citas agendadas</h3>
-              <p className="text-dark-400 text-sm">Las citas aparecen aquí cuando marcas un lead como agendado</p>
+              <div className="text-5xl mb-3">{showHistory ? '🗂️' : '📅'}</div>
+              <h3 className="font-semibold text-dark-800 mb-2">
+                {showHistory ? 'No hay citas en el historial' : 'No hay citas pendientes'}
+              </h3>
+              <p className="text-dark-400 text-sm">
+                {showHistory ? 'Las citas atendidas y canceladas aparecerán aquí' : 'Las citas aparecen aquí cuando marcas un lead como agendado'}
+              </p>
             </div>
           ) : (
             <div className="card p-0 overflow-hidden">
@@ -240,8 +274,10 @@ export default function LeadsPage() {
                         lead={lead}
                         displayName={displayName}
                         conv={conv}
+                        isHistory={showHistory}
                         onSaveNotes={saveNotes}
                         onUnbook={unbook}
+                        onMarkStatus={markStatus}
                         onGoToConversation={goToConversation}
                       />
                     );
@@ -390,13 +426,15 @@ export default function LeadsPage() {
 }
 
 function BookedLeadRow({
-  lead, displayName, conv, onSaveNotes, onUnbook, onGoToConversation,
+  lead, displayName, conv, isHistory, onSaveNotes, onUnbook, onMarkStatus, onGoToConversation,
 }: {
   lead: Lead;
   displayName: string;
   conv: Lead['conversations'][0] | undefined;
+  isHistory: boolean;
   onSaveNotes: (lead: Lead, notes: string) => Promise<void>;
   onUnbook: (lead: Lead) => Promise<void>;
+  onMarkStatus: (lead: Lead, status: 'ATTENDED' | 'CANCELLED') => Promise<void>;
   onGoToConversation: (lead: Lead) => void;
 }) {
   const [notes, setNotes] = useState(lead.appointmentNotes || '');
@@ -408,16 +446,23 @@ function BookedLeadRow({
       })
     : '—';
 
+  const statusBadge = lead.appointmentStatus === 'ATTENDED'
+    ? <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">✓ Atendido</span>
+    : lead.appointmentStatus === 'CANCELLED'
+    ? <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-0.5 rounded-full">✗ Cancelado</span>
+    : null;
+
   return (
     <tr className="hover:bg-dark-50 transition-colors">
       <td className="px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700 flex-shrink-0">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${isHistory ? 'bg-dark-100 text-dark-500' : 'bg-green-100 text-green-700'}`}>
             {displayName.charAt(0).toUpperCase()}
           </div>
           <div>
             <p className="text-sm font-medium text-dark-900">{displayName}</p>
             {lead.phone && lead.name && <p className="text-xs text-dark-400">{lead.phone}</p>}
+            {statusBadge}
           </div>
         </div>
       </td>
@@ -452,13 +497,29 @@ function BookedLeadRow({
         <p className="text-sm text-dark-700 font-medium">📅 {bookedDate}</p>
       </td>
       <td className="px-5 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {conv && (
             <button onClick={() => onGoToConversation(lead)} className="text-xs font-medium text-primary-600 hover:text-primary-800">
               Ver chat →
             </button>
           )}
-          <button onClick={() => onUnbook(lead)} className="text-xs text-dark-400 hover:text-red-500 transition-colors">
+          {!isHistory && (
+            <>
+              <button
+                onClick={() => onMarkStatus(lead, 'ATTENDED')}
+                className="text-xs font-medium text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-2 py-1 rounded transition-colors"
+              >
+                ✓ Atendido
+              </button>
+              <button
+                onClick={() => onMarkStatus(lead, 'CANCELLED')}
+                className="text-xs text-dark-400 hover:text-red-500 transition-colors"
+              >
+                ✗ Cancelar
+              </button>
+            </>
+          )}
+          <button onClick={() => onUnbook(lead)} className="text-xs text-dark-300 hover:text-red-400 transition-colors">
             ↩ Desagendar
           </button>
         </div>

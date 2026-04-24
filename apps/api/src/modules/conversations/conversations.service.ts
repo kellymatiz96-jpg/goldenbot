@@ -208,6 +208,7 @@ export async function markAppointmentBooked(clientId: string, conversationId: st
     data: {
       appointmentBooked: booked,
       appointmentBookedAt: booked ? new Date() : null,
+      appointmentStatus: booked ? 'PENDING' : null,
     },
     select: { id: true, appointmentBooked: true },
   });

@@ -6,7 +6,8 @@ export async function getLeads(
   limit = 20,
   temperature?: string,
   search?: string,
-  appointmentBooked?: boolean
+  appointmentBooked?: boolean,
+  appointmentStatus?: string
 ) {
   const skip = (page - 1) * limit;
 
@@ -18,6 +19,12 @@ export async function getLeads(
 
   if (appointmentBooked !== undefined) {
     where.appointmentBooked = appointmentBooked;
+  }
+
+  if (appointmentStatus === 'HISTORY') {
+    where.appointmentStatus = { in: ['ATTENDED', 'CANCELLED'] };
+  } else if (appointmentStatus === 'PENDING') {
+    where.appointmentStatus = 'PENDING';
   }
 
   if (search) {
@@ -44,6 +51,7 @@ export async function getLeads(
         appointmentBooked: true,
         appointmentBookedAt: true,
         appointmentNotes: true,
+        appointmentStatus: true,
         createdAt: true,
         updatedAt: true,
         conversations: {
@@ -62,6 +70,16 @@ export async function getLeads(
   ]);
 
   return { leads, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+export async function updateAppointmentStatus(
+  clientId: string,
+  leadId: string,
+  status: 'ATTENDED' | 'CANCELLED'
+) {
+  const lead = await prisma.lead.findFirst({ where: { id: leadId, clientId } });
+  if (!lead) throw new Error('Lead no encontrado');
+  return prisma.lead.update({ where: { id: leadId }, data: { appointmentStatus: status } });
 }
 
 export async function updateAppointmentNotes(
