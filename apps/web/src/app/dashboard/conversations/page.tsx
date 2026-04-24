@@ -351,7 +351,7 @@ function MessageBubble({ message }: { message: { content: string; role: string; 
         {(isBot || isAgent) && (
           <p className="text-xs opacity-75 mb-1">{isBot ? '🤖 Bot' : '👤 Agente'}</p>
         )}
-        <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <p className="leading-relaxed whitespace-pre-wrap">{message.content.replace('GB_FORM_CITA', '').trim()}</p>
         <p className={cn('text-xs mt-1 opacity-60', isUser ? 'text-right' : 'text-left')}>
           {new Date(message.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
         </p>

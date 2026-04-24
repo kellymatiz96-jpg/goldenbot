@@ -209,9 +209,12 @@ export function useConversationDetail(conversationId: string | null) {
     if (!conversationId) return;
     try {
       const { data } = await api.post(`/conversations/${conversationId}/agent-message`, { content });
-      setConversation((prev) =>
-        prev ? { ...prev, messages: [...prev.messages, data.data] } : prev
-      );
+      // Dedup: el socket puede llegar antes que el response HTTP
+      setConversation((prev) => {
+        if (!prev) return prev;
+        if (prev.messages.some((m) => m.id === data.data.id)) return prev;
+        return { ...prev, messages: [...prev.messages, data.data] };
+      });
     } catch {
       toast.error('Error al enviar el mensaje');
     }
