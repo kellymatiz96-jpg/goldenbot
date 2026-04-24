@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate } from '../../shared/middlewares/authenticate';
-import { getLeads, updateLeadTemperature } from './leads.service';
+import { getLeads, updateLeadTemperature, updateAppointmentNotes } from './leads.service';
 
 const router = Router();
 
@@ -31,6 +31,18 @@ router.patch('/:id/temperature', async (req: Request, res: Response, next: NextF
       return;
     }
     const result = await updateLeadTemperature(clientId, req.params.id, temperature);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /leads/:id/appointment-notes — guardar notas de cita
+router.patch('/:id/appointment-notes', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const clientId = req.user!.clientId!;
+    const { notes } = req.body;
+    const result = await updateAppointmentNotes(clientId, req.params.id, notes ?? '');
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

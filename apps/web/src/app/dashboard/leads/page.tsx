@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/Badge';
@@ -14,6 +14,8 @@ interface Lead {
   source: string;
   temperature: 'COLD' | 'WARM' | 'HOT';
   appointmentBooked: boolean;
+  appointmentBookedAt: string | null;
+  appointmentNotes: string | null;
   createdAt: string;
   updatedAt: string;
   conversations: Array<{
@@ -86,6 +88,28 @@ export default function LeadsPage() {
       fetchLeads();
     } catch {
       toast.error('Error al actualizar la temperatura');
+    }
+  };
+
+  const saveNotes = async (lead: Lead, notes: string) => {
+    try {
+      await api.patch(`/leads/${lead.id}/appointment-notes`, { notes });
+      toast.success('Notas guardadas');
+      fetchLeads();
+    } catch {
+      toast.error('Error al guardar notas');
+    }
+  };
+
+  const unbook = async (lead: Lead) => {
+    const conv = lead.conversations[0];
+    if (!conv) return;
+    try {
+      await api.put(`/conversations/${conv.id}/appointment-booked`, { booked: false });
+      toast.success('Cita desmarcada');
+      fetchLeads();
+    } catch {
+      toast.error('Error al desmarcar');
     }
   };
 
@@ -185,6 +209,48 @@ export default function LeadsPage() {
           <h3 className="font-semibold text-dark-800 mb-2">No hay leads aún</h3>
           <p className="text-dark-400 text-sm">Los leads aparecen aquí cuando alguien escribe a tu chatbot</p>
         </div>
+      ) : filter === 'BOOKED' ? (
+        /* Vista especial para Agendados */
+        <>
+          {data.leads.length === 0 ? (
+            <div className="card text-center py-12">
+              <div className="text-5xl mb-3">📅</div>
+              <h3 className="font-semibold text-dark-800 mb-2">No hay citas agendadas</h3>
+              <p className="text-dark-400 text-sm">Las citas aparecen aquí cuando marcas un lead como agendado</p>
+            </div>
+          ) : (
+            <div className="card p-0 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-dark-100 bg-dark-50">
+                    <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Lead</th>
+                    <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Canal</th>
+                    <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3 w-64">Notas de cita</th>
+                    <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Fecha agendado</th>
+                    <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-dark-100">
+                  {data.leads.map((lead) => {
+                    const conv = lead.conversations[0];
+                    const displayName = lead.name || lead.phone || lead.externalId.slice(0, 12) + '...';
+                    return (
+                      <BookedLeadRow
+                        key={lead.id}
+                        lead={lead}
+                        displayName={displayName}
+                        conv={conv}
+                        onSaveNotes={saveNotes}
+                        onUnbook={unbook}
+                        onGoToConversation={goToConversation}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       ) : (
         <>
           {/* Tarjetas móvil */}
@@ -320,5 +386,83 @@ export default function LeadsPage() {
         </>
       )}
     </div>
+  );
+}
+
+function BookedLeadRow({
+  lead, displayName, conv, onSaveNotes, onUnbook, onGoToConversation,
+}: {
+  lead: Lead;
+  displayName: string;
+  conv: Lead['conversations'][0] | undefined;
+  onSaveNotes: (lead: Lead, notes: string) => Promise<void>;
+  onUnbook: (lead: Lead) => Promise<void>;
+  onGoToConversation: (lead: Lead) => void;
+}) {
+  const [notes, setNotes] = useState(lead.appointmentNotes || '');
+  const [editing, setEditing] = useState(false);
+
+  const bookedDate = lead.appointmentBookedAt
+    ? new Date(lead.appointmentBookedAt).toLocaleString('es-ES', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      })
+    : '—';
+
+  return (
+    <tr className="hover:bg-dark-50 transition-colors">
+      <td className="px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700 flex-shrink-0">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-dark-900">{displayName}</p>
+            {lead.phone && lead.name && <p className="text-xs text-dark-400">{lead.phone}</p>}
+          </div>
+        </div>
+      </td>
+      <td className="px-5 py-4">
+        <span className="text-sm text-dark-600">{CHANNEL_ICONS[conv?.channel?.type || lead.source]} {conv?.channel?.type || lead.source}</span>
+      </td>
+      <td className="px-5 py-4">
+        {editing ? (
+          <div className="flex gap-1">
+            <input
+              autoFocus
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { onSaveNotes(lead, notes); setEditing(false); }
+                if (e.key === 'Escape') setEditing(false);
+              }}
+              placeholder="Ej: Depilación laser — Lunes 10am"
+              className="input text-xs flex-1"
+            />
+            <button onClick={() => { onSaveNotes(lead, notes); setEditing(false); }} className="text-xs px-2 py-1 bg-primary-500 text-white rounded">✓</button>
+          </div>
+        ) : (
+          <button onClick={() => setEditing(true)} className="text-left group w-full">
+            <p className="text-sm text-dark-700 group-hover:text-primary-600 transition-colors">
+              {notes || <span className="text-dark-300 italic">Agregar notas...</span>}
+            </p>
+          </button>
+        )}
+      </td>
+      <td className="px-5 py-4">
+        <p className="text-sm text-dark-700 font-medium">📅 {bookedDate}</p>
+      </td>
+      <td className="px-5 py-4">
+        <div className="flex items-center gap-3">
+          {conv && (
+            <button onClick={() => onGoToConversation(lead)} className="text-xs font-medium text-primary-600 hover:text-primary-800">
+              Ver chat →
+            </button>
+          )}
+          <button onClick={() => onUnbook(lead)} className="text-xs text-dark-400 hover:text-red-500 transition-colors">
+            ↩ Desagendar
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }

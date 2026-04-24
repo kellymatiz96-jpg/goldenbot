@@ -42,6 +42,8 @@ export async function getLeads(
         source: true,
         temperature: true,
         appointmentBooked: true,
+        appointmentBookedAt: true,
+        appointmentNotes: true,
         createdAt: true,
         updatedAt: true,
         conversations: {
@@ -60,6 +62,16 @@ export async function getLeads(
   ]);
 
   return { leads, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+export async function updateAppointmentNotes(
+  clientId: string,
+  leadId: string,
+  notes: string
+) {
+  const lead = await prisma.lead.findFirst({ where: { id: leadId, clientId } });
+  if (!lead) throw new Error('Lead no encontrado');
+  return prisma.lead.update({ where: { id: leadId }, data: { appointmentNotes: notes } });
 }
 
 export async function updateLeadTemperature(

@@ -185,11 +185,13 @@ model Lead {
   email       String?
   externalId  String?     // ID del contacto en WhatsApp/Instagram
   source      ChannelType // Por dónde llegó el lead
-  temperature       Temperature @default(COLD)
-  appointmentBooked Boolean     @default(false)
-  isActive          Boolean     @default(true)
-  notes             String?
-  tags              String[]
+  temperature           Temperature @default(COLD)
+  appointmentBooked     Boolean     @default(false)
+  appointmentBookedAt   DateTime?
+  appointmentNotes      String?
+  isActive              Boolean     @default(true)
+  notes                 String?
+  tags                  String[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

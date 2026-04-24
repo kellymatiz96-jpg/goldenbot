@@ -205,7 +205,10 @@ export async function markAppointmentBooked(clientId: string, conversationId: st
 
   const lead = await prisma.lead.update({
     where: { id: conversation.leadId },
-    data: { appointmentBooked: booked },
+    data: {
+      appointmentBooked: booked,
+      appointmentBookedAt: booked ? new Date() : null,
+    },
     select: { id: true, appointmentBooked: true },
   });
 
