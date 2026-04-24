@@ -205,7 +205,7 @@ Escríbelos como prefieras. 😊 ${APPT_MARKER}`;
     }
 
     // Si el usuario quiere agendar, enviar el formulario directamente (sin IA)
-    const bookingKw = ['agendar', 'cita', 'reservar', 'reserva', 'turno', 'disponib', 'quiero ir', 'necesito una', 'quisiera una', 'me gustaria', 'me gustaría'];
+    const bookingKw = ['agenda', 'cita', 'reservar', 'reserva', 'turno', 'disponib', 'quiero ir', 'necesito una', 'quisiera una', 'me gustaria', 'me gustaría', 'pedir cita', 'hacer cita', 'solicitar'];
     const wantsToBook = bookingKw.some((kw) =>
       incoming.content.toLowerCase().includes(kw.toLowerCase())
     );
