@@ -171,7 +171,17 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     return escalationMsg;
   }
 
-  // 8b. Si el negocio agenda citas y el bot YA pidió los datos, confirmar y escalar sin IA
+  // 8b. Lógica de citas — bypass total de IA para el flujo de formulario/confirmación
+  // El formulario lo envía el código directamente, no la IA, para que la detección sea 100% confiable.
+  const APPT_MARKER = 'GB_FORM_CITA';
+  const APPT_FORM = `¡Claro que sí! Para registrar tu solicitud necesito estos datos:
+
+👤 Tu nombre:
+💆 Servicio que te interesa:
+📅 Día preferido:
+
+Escríbelos como prefieras. 😊 ${APPT_MARKER}`;
+
   const conversionGoal = businessInfo?.conversionGoal?.toLowerCase() || '';
   const isAppointmentBusiness = conversionGoal === 'appointment' ||
     ['cita', 'reserva', 'turno', 'consulta', 'agenda'].some((w) => conversionGoal.includes(w));
@@ -181,15 +191,33 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
       .filter((m) => m.role === 'bot')
       .at(-1)?.content || '';
 
-    // Detectar si el bot ya envió el formulario de solicitud de cita
-    const botAlreadyAskedForData =
-      lastBotMsg.includes('Tu nombre:') && lastBotMsg.includes('Servicio que te interesa:');
-
-    if (botAlreadyAskedForData) {
+    // Si el bot ya envió el formulario, cualquier respuesta = confirmar y escalar (sin IA)
+    if (lastBotMsg.includes(APPT_MARKER)) {
       const confirmMsg = '¡Gracias! Recibimos tu solicitud. Te vamos a comunicar con uno de nuestros asesores para coordinar todos los detalles. ¡En breve te contactan! 😊';
       await saveAndEmitBotMessage(client.id, conversation.id, confirmMsg);
       await handleEscalation(client.id, conversation.id, lead.id);
       return confirmMsg;
+    }
+
+    // Si el usuario quiere agendar, enviar el formulario directamente (sin IA)
+    const bookingKw = ['agendar', 'cita', 'reservar', 'reserva', 'turno', 'disponib', 'quiero ir', 'necesito una', 'quisiera una', 'me gustaria', 'me gustaría'];
+    const wantsToBook = bookingKw.some((kw) =>
+      incoming.content.toLowerCase().includes(kw.toLowerCase())
+    );
+
+    if (wantsToBook) {
+      // Guardar con marker en BD (para detección futura) pero mostrar texto limpio al usuario
+      const visibleForm = APPT_FORM.replace(APPT_MARKER, '').trim();
+      await prisma.message.create({
+        data: { conversationId: conversation.id, clientId: client.id, role: 'bot', content: APPT_FORM },
+      });
+      emitToClient(client.id, 'message:new', {
+        conversationId: conversation.id, role: 'bot', content: visibleForm, createdAt: new Date().toISOString(),
+      });
+      emitToClient(client.id, 'conversation:new_message', {
+        conversationId: conversation.id, role: 'bot', content: visibleForm, createdAt: new Date().toISOString(),
+      });
+      return visibleForm;
     }
   }
 

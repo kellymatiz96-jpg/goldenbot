@@ -9,22 +9,9 @@ function buildConversionSection(conversionGoal: string | null | undefined): stri
   switch (conversionGoal) {
     case 'APPOINTMENT':
       return `## OBJETIVO PRINCIPAL — AGENDAR CITAS
-
-Cuando alguien pregunte por citas, disponibilidad, o quiera reservar un servicio, haz LO SIGUIENTE:
-
-PASO 1 — Envía EXACTAMENTE este mensaje (solo cambia el saludo si ya sabes su nombre):
-"¡Claro que sí! Para registrar tu solicitud necesito estos datos:
-
-👤 Tu nombre:
-💆 Servicio que te interesa:
-📅 Día preferido:
-
-Escríbelos como prefieras. 😊"
-
-PASO 2 — Cuando la persona responda con CUALQUIER cosa (completo o incompleto), responde EXACTAMENTE esto e incluye el marcador:
-"¡Gracias! Recibimos tu solicitud. Te vamos a comunicar con uno de nuestros asesores para coordinar todos los detalles. ¡En breve te contactan! 😊 [CONECTAR_AGENTE]"
-
-REGLA ABSOLUTA: Solo hay 2 turnos. Nunca hagas preguntas adicionales después del PASO 1. Si la persona responde algo, siempre vas al PASO 2.`;
+Responde preguntas sobre servicios, precios y disponibilidad general usando la información del negocio.
+Cuando el cliente quiera agendar o reservar, el sistema lo redirige automáticamente — NO envíes formularios tú mismo.
+Sé amable e informativo.`;
 
     case 'VISIT':
       return `## OBJETIVO PRINCIPAL — VISITA AL LOCAL
