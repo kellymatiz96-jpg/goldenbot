@@ -84,11 +84,16 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     },
     include: {
       messages: {
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         take: 20,
       },
     },
   });
+
+  // Revertir al orden cronológico (desc+take da los 20 más recientes, reverse los ordena asc)
+  if (conversation) {
+    conversation = { ...conversation, messages: [...conversation.messages].reverse() };
+  }
 
   if (!conversation) {
     conversation = await prisma.conversation.create({
