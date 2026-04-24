@@ -10,13 +10,13 @@ export async function getConversations(clientId: string, page = 1, limit = 30) {
 
   const [conversations, total] = await Promise.all([
     prisma.conversation.findMany({
-      where: { clientId },
+      where: { clientId, status: { not: 'CLOSED' } },
       orderBy: { lastMessageAt: 'desc' },
       skip,
       take: limit,
       include: {
         lead: {
-          select: { id: true, name: true, phone: true, temperature: true, externalId: true },
+          select: { id: true, name: true, phone: true, temperature: true, externalId: true, appointmentBooked: true },
         },
         channel: { select: { type: true } },
         assignedAgent: { select: { id: true, name: true } },
@@ -27,7 +27,7 @@ export async function getConversations(clientId: string, page = 1, limit = 30) {
         },
       },
     }),
-    prisma.conversation.count({ where: { clientId } }),
+    prisma.conversation.count({ where: { clientId, status: { not: 'CLOSED' } } }),
   ]);
 
   return { conversations, total, page, totalPages: Math.ceil(total / limit) };

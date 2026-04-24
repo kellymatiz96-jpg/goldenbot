@@ -21,6 +21,7 @@ export interface ConversationSummary {
     phone: string | null;
     temperature: 'COLD' | 'WARM' | 'HOT';
     externalId: string | null;
+    appointmentBooked: boolean;
   };
   channel: { type: string };
   assignedAgent: { id: string; name: string } | null;

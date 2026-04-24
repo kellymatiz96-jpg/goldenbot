@@ -148,6 +148,7 @@ export default function ConversationsPage() {
               ? formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true, locale: es })
               : '';
 
+            const isBooked = conv.lead.appointmentBooked;
             return (
               <button
                 key={conv.id}
@@ -160,13 +161,13 @@ export default function ConversationsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-lg">{needsAgent ? '🎧' : temp.emoji}</span>
+                    <span className="text-lg">{needsAgent ? '🎧' : isBooked ? '📅' : temp.emoji}</span>
                     <div className="min-w-0">
                       <p className="font-medium text-dark-900 text-sm truncate">
                         {conv.lead.name || conv.lead.phone || conv.lead.externalId || 'Desconocido'}
                       </p>
                       <p className="text-xs text-dark-400 truncate mt-0.5">
-                        {lastMsg?.content || 'Sin mensajes'}
+                        {lastMsg?.content?.replace('GB_FORM_CITA', '').trim() || 'Sin mensajes'}
                       </p>
                     </div>
                   </div>
@@ -176,9 +177,12 @@ export default function ConversationsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5 ml-7">
-                  <Badge variant={temp.variant}>{temp.label}</Badge>
+                  {isBooked
+                    ? <Badge variant="success">📅 Agendado</Badge>
+                    : <Badge variant={temp.variant}>{temp.label}</Badge>
+                  }
                   {needsAgent && <Badge variant="warning">🎧 Esperando</Badge>}
-                  {conv.status === 'BOT_ACTIVE' && <Badge variant="default">Bot</Badge>}
+                  {!isBooked && conv.status === 'BOT_ACTIVE' && <Badge variant="default">Bot</Badge>}
                 </div>
               </button>
             );
