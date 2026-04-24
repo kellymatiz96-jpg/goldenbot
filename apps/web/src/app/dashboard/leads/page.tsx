@@ -519,9 +519,11 @@ function BookedLeadRow({
               </button>
             </>
           )}
-          <button onClick={() => onUnbook(lead)} className="text-xs text-dark-300 hover:text-red-400 transition-colors">
-            ↩ Desagendar
-          </button>
+          {!isHistory && (
+            <button onClick={() => onUnbook(lead)} className="text-xs text-dark-300 hover:text-red-400 transition-colors">
+              ↩ Desagendar
+            </button>
+          )}
         </div>
       </td>
     </tr>

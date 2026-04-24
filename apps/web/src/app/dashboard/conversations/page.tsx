@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useSearchParams } from 'next/navigation';
 import { useConversations, useConversationDetail } from '@/hooks/useConversations';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -25,8 +26,9 @@ type FilterType = 'ALL' | 'HOT' | 'WARM' | 'COLD' | 'AGENT';
 
 export default function ConversationsPage() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
   const { conversations, isLoading, takeOver, release } = useConversations(user?.clientId ?? null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('ALL');
 
@@ -323,6 +325,14 @@ export default function ConversationsPage() {
             <div className="px-4 py-3 border-t border-dark-200 bg-dark-50">
               <p className="text-xs text-dark-400 text-center">
                 🤖 El bot está gestionando esta conversación. Haz clic en "Tomar control" para responder tú.
+              </p>
+            </div>
+          )}
+
+          {detail.status === 'CLOSED' && (
+            <div className="px-4 py-3 border-t border-dark-200 bg-dark-50">
+              <p className="text-xs text-dark-400 text-center">
+                🗂️ Conversación cerrada — solo lectura
               </p>
             </div>
           )}
