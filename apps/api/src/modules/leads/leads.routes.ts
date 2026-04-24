@@ -13,7 +13,8 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const page = parseInt(req.query.page as string) || 1;
     const temperature = req.query.temperature as string | undefined;
     const search = req.query.search as string | undefined;
-    const result = await getLeads(clientId, page, 20, temperature, search);
+    const appointmentBooked = req.query.appointmentBooked === 'true' ? true : req.query.appointmentBooked === 'false' ? false : undefined;
+    const result = await getLeads(clientId, page, 20, temperature, search, appointmentBooked);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

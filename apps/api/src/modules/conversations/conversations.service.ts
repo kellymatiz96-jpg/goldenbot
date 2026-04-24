@@ -209,6 +209,19 @@ export async function markAppointmentBooked(clientId: string, conversationId: st
     select: { id: true, appointmentBooked: true },
   });
 
+  // Al marcar como agendado, cerrar la conversación (ya no está en espera)
+  if (booked) {
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { status: ConversationStatus.CLOSED },
+    });
+    try {
+      const payload = { conversationId, status: 'CLOSED' };
+      getIO().to(`client:${clientId}`).emit('conversation:status_changed', payload);
+      getIO().to(`conversation:${conversationId}`).emit('conversation:status_changed', payload);
+    } catch { /* ignorar */ }
+  }
+
   try {
     getIO().to(`client:${clientId}`).emit('lead:appointment_booked', {
       leadId: lead.id,

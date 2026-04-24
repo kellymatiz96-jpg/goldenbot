@@ -5,7 +5,8 @@ export async function getLeads(
   page = 1,
   limit = 20,
   temperature?: string,
-  search?: string
+  search?: string,
+  appointmentBooked?: boolean
 ) {
   const skip = (page - 1) * limit;
 
@@ -13,6 +14,10 @@ export async function getLeads(
 
   if (temperature && ['COLD', 'WARM', 'HOT'].includes(temperature)) {
     where.temperature = temperature;
+  }
+
+  if (appointmentBooked !== undefined) {
+    where.appointmentBooked = appointmentBooked;
   }
 
   if (search) {
@@ -29,9 +34,17 @@ export async function getLeads(
       orderBy: { updatedAt: 'desc' },
       skip,
       take: limit,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        externalId: true,
+        source: true,
+        temperature: true,
+        appointmentBooked: true,
+        createdAt: true,
+        updatedAt: true,
         conversations: {
-          where: { status: { not: 'CLOSED' } },
           orderBy: { lastMessageAt: 'desc' },
           take: 1,
           select: {

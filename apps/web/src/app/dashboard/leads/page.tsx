@@ -13,6 +13,7 @@ interface Lead {
   externalId: string;
   source: string;
   temperature: 'COLD' | 'WARM' | 'HOT';
+  appointmentBooked: boolean;
   createdAt: string;
   updatedAt: string;
   conversations: Array<{
@@ -61,7 +62,11 @@ export default function LeadsPage() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page) });
-      if (filter) params.set('temperature', filter);
+      if (filter === 'BOOKED') {
+        params.set('appointmentBooked', 'true');
+      } else if (filter) {
+        params.set('temperature', filter);
+      }
       if (search) params.set('search', search);
       const { data: res } = await api.get(`/leads?${params}`);
       setData(res.data);
@@ -131,6 +136,7 @@ export default function LeadsPage() {
             { value: 'COLD', label: 'Frío', emoji: '🔵' },
             { value: 'WARM', label: 'Tibio', emoji: '🟠' },
             { value: 'HOT', label: 'Caliente', emoji: '🔴' },
+            { value: 'BOOKED', label: 'Agendados', emoji: '📅' },
           ].map((opt) => (
             <button
               key={opt.value}
@@ -196,9 +202,12 @@ export default function LeadsPage() {
                       <p className="font-medium text-dark-900 truncate">{displayName}</p>
                       {lead.phone && lead.name && <p className="text-xs text-dark-400">{lead.phone}</p>}
                     </div>
-                    <Badge variant={TEMPERATURE_BADGE[lead.temperature]}>
-                      {TEMPERATURE_LABELS[lead.temperature]}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={TEMPERATURE_BADGE[lead.temperature]}>
+                        {TEMPERATURE_LABELS[lead.temperature]}
+                      </Badge>
+                      {lead.appointmentBooked && <Badge variant="success">📅 Agendado</Badge>}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-dark-500">
                     <span>{CHANNEL_ICONS[conv?.channel?.type || lead.source]} {conv?.channel?.type || lead.source}</span>
@@ -264,6 +273,7 @@ export default function LeadsPage() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
                           <Badge variant={TEMPERATURE_BADGE[lead.temperature]}>{TEMPERATURE_LABELS[lead.temperature]}</Badge>
+                          {lead.appointmentBooked && <Badge variant="success">📅</Badge>}
                           <select
                             value={lead.temperature}
                             onChange={(e) => changeTemperature(lead, e.target.value as 'COLD' | 'WARM' | 'HOT')}
