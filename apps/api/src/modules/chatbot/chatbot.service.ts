@@ -105,7 +105,20 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
     emitToClient(client.id, 'conversation:created', { conversationId: conversation.id });
   }
 
-  // 5. Guardar el mensaje del usuario
+  // 5. Guardar el mensaje del usuario (deduplicar: ignorar si el mismo mensaje llegó hace menos de 10s)
+  const recentDuplicate = await prisma.message.findFirst({
+    where: {
+      conversationId: conversation.id,
+      role: 'user',
+      content: incoming.content,
+      createdAt: { gte: new Date(Date.now() - 10_000) },
+    },
+  });
+  if (recentDuplicate) {
+    logger.warn(`[Chatbot] Mensaje duplicado ignorado para conversación ${conversation.id}`);
+    return '';
+  }
+
   await prisma.message.create({
     data: {
       conversationId: conversation.id,
@@ -169,7 +182,8 @@ export async function processIncomingMessage(incoming: IncomingMessage): Promise
       .at(-1)?.content || '';
 
     // Detectar si el bot ya envió el formulario de solicitud de cita
-    const botAlreadyAskedForData = lastBotMsg.includes('👤 Tu nombre:');
+    const botAlreadyAskedForData =
+      lastBotMsg.includes('Tu nombre:') && lastBotMsg.includes('Servicio que te interesa:');
 
     if (botAlreadyAskedForData) {
       const confirmMsg = '¡Gracias! Recibimos tu solicitud. Te vamos a comunicar con uno de nuestros asesores para coordinar todos los detalles. ¡En breve te contactan! 😊';
