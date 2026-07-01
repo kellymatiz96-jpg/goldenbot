@@ -67,8 +67,13 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
           <p className="text-xs text-dark-500 font-semibold uppercase tracking-wider px-3 mb-2">
             General
           </p>
-          <NavItem href="/superadmin" icon="📊" label="Dashboard" currentPath={pathname} />
+          <NavItem href="/superadmin" icon="📊" label="Dashboard global" currentPath={pathname} />
           <NavItem href="/superadmin/clients" icon="👥" label="Clientes" currentPath={pathname} />
+          <NavItem href="/superadmin/conversations" icon="💬" label="Conversaciones globales" currentPath={pathname} />
+          <NavItem href="/superadmin/leads" icon="🎯" label="Leads globales" currentPath={pathname} />
+          <NavItem href="/superadmin/agents" icon="🧑‍💼" label="Agentes" currentPath={pathname} />
+          <NavItem href="/superadmin/integrations" icon="🔌" label="Integraciones" currentPath={pathname} />
+          <NavItem href="/superadmin/settings" icon="⚙️" label="Configuración" currentPath={pathname} />
         </nav>
 
         {/* Footer del sidebar — perfil del usuario */}

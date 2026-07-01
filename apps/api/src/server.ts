@@ -25,6 +25,7 @@ import leadsRoutes from './modules/leads/leads.routes';
 import { startRemarketingScheduler } from './modules/remarketing/remarketing.scheduler';
 import notificationsRoutes from './modules/notifications/notifications.routes';
 import appointmentsRoutes from './modules/appointments/appointments.routes';
+import adminOverviewRoutes from './modules/admin/admin.routes';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -93,6 +94,7 @@ app.use('/remarketing', remarketingRoutes);
 app.use('/leads', leadsRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/appointments', appointmentsRoutes);
+app.use('/admin/overview', adminOverviewRoutes);
 
 // ---- 404 ----
 app.use((_req, res) => {

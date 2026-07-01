@@ -4,6 +4,7 @@ import { Plan } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { AppError } from '../../shared/middlewares/errorHandler';
+import { calculateHealthScore } from '../../shared/utils/healthScore';
 
 interface CreateClientInput {
   name: string;
@@ -15,7 +16,7 @@ interface CreateClientInput {
 }
 
 export async function listClients() {
-  return prisma.client.findMany({
+  const clients = await prisma.client.findMany({
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
@@ -24,6 +25,16 @@ export async function listClients() {
       plan: true,
       isActive: true,
       createdAt: true,
+      users: {
+        where: { role: 'CLIENT_ADMIN' },
+        take: 1,
+        select: { email: true },
+      },
+      conversations: {
+        orderBy: { lastMessageAt: 'desc' },
+        take: 1,
+        select: { lastMessageAt: true },
+      },
       _count: {
         select: {
           leads: true,
@@ -32,6 +43,18 @@ export async function listClients() {
       },
     },
   });
+
+  return clients.map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    plan: c.plan,
+    isActive: c.isActive,
+    createdAt: c.createdAt,
+    email: c.users[0]?.email ?? null,
+    lastActivityAt: c.conversations[0]?.lastMessageAt ?? null,
+    _count: c._count,
+  }));
 }
 
 export async function getClientById(id: string) {
@@ -175,17 +198,80 @@ export async function impersonateClient(clientId: string, superadminId: string) 
 }
 
 export async function getGlobalMetrics() {
-  const [totalClients, activeClients, totalLeads, totalConversations] = await Promise.all([
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [
+    totalClients,
+    activeClients,
+    totalLeads,
+    totalConversations,
+    conversationsToday,
+    coldLeads,
+    warmLeads,
+    hotLeads,
+    waitingConversations,
+  ] = await Promise.all([
     prisma.client.count(),
     prisma.client.count({ where: { isActive: true } }),
     prisma.lead.count(),
     prisma.conversation.count(),
+    prisma.conversation.count({ where: { createdAt: { gte: today } } }),
+    prisma.lead.count({ where: { temperature: 'COLD', isActive: true } }),
+    prisma.lead.count({ where: { temperature: 'WARM', isActive: true } }),
+    prisma.lead.count({ where: { temperature: 'HOT', isActive: true } }),
+    // Conversaciones con agente activo — se revisa el último mensaje de cada una
+    // para saber si el lead está esperando respuesta (mismo criterio que el
+    // badge "esperando agente" del panel del cliente)
+    prisma.conversation.findMany({
+      where: { status: 'AGENT_ACTIVE' },
+      select: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { role: true },
+        },
+      },
+    }),
   ]);
+
+  const leadsWithoutResponse = waitingConversations.filter(
+    (c) => c.messages.length === 0 || c.messages[0].role === 'user'
+  ).length;
 
   const clientsByPlan = await prisma.client.groupBy({
     by: ['plan'],
     _count: true,
   });
+
+  // Score comercial promedio — mismo cálculo del score de salud del panel
+  // cliente, promediado entre todos los clientes activos
+  const activeClientsData = await prisma.client.findMany({
+    where: { isActive: true },
+    select: {
+      leads: { where: { isActive: true }, select: { temperature: true } },
+      conversations: { where: { createdAt: { gte: today } }, select: { id: true } },
+    },
+  });
+
+  const avgCommercialScore = activeClientsData.length
+    ? Math.round(
+        activeClientsData.reduce((sum, c) => {
+          const total = c.leads.length;
+          const hot = c.leads.filter((l) => l.temperature === 'HOT').length;
+          const warm = c.leads.filter((l) => l.temperature === 'WARM').length;
+          return (
+            sum +
+            calculateHealthScore({
+              hotLeads: hot,
+              warmLeads: warm,
+              totalLeads: total,
+              conversationsToday: c.conversations.length,
+            })
+          );
+        }, 0) / activeClientsData.length
+      )
+    : 0;
 
   return {
     totalClients,
@@ -193,6 +279,12 @@ export async function getGlobalMetrics() {
     inactiveClients: totalClients - activeClients,
     totalLeads,
     totalConversations,
+    conversationsToday,
+    coldLeads,
+    warmLeads,
+    hotLeads,
+    leadsWithoutResponse,
+    avgCommercialScore,
     clientsByPlan: clientsByPlan.map((c) => ({ plan: c.plan, count: c._count })),
   };
 }

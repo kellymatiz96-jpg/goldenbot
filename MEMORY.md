@@ -1,7 +1,7 @@
 # MEMORY.md — Estado Actual del Proyecto
 
 > Actualizar este archivo al final de cada sesión de trabajo.
-> Fecha de última actualización: 2026-04-22
+> Fecha de última actualización: 2026-07-01
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Fase actual:** Fase 5 parcialmente completa — chatbot, IA y canales funcionando en producción
 **Progreso global:** ~65% — Fases 1-5 completadas (excepto Instagram y WhatsApp producción)
-**Entorno de producción:** Render (API) + Vercel (Frontend) + Neon (PostgreSQL) — ACTIVO
+**Entorno de producción:** Render (API) + Vercel (Frontend) + Supabase (PostgreSQL) — ACTIVO
 
 ---
 
@@ -44,6 +44,7 @@
 - Banner "Esperando agente" cuando el lead solicitó atención humana
 - Badge en sidebar con conteo de conversaciones esperando agente
 - Sonidos: 4 pitidos para alertas urgentes, 1 pitido suave para mensajes nuevos
+- **Sistema de citas/agendamiento:** formulario estructurado de cita (detección por código, no depende de la IA); al agendar cierra la conversación y la mueve a "Agendados"; estados Pendiente/Atendido/Cancelado con historial; notas editables, botón Desagendar; filtro "Agendados" en Leads
 
 ### Panel del Cliente — Configuración
 - **Mi negocio**: nombre, descripción, servicios, precios, horarios, ubicación, FAQs, palabras clave de escalado, mensaje de bienvenida, objetivo de conversión (dropdown: agendar citas / visitar local / tomar pedidos / derivar llamada / solo informar)
@@ -96,13 +97,15 @@
 | 2026-04-22 | Temperatura solo sube automáticamente | Agente la baja manual para no perder contexto |
 | 2026-04-22 | Clasificar temperatura desde mensaje nro. 2 | Evitar que "Hola" suba el lead a Tibio |
 | 2026-04-22 | Instagram/FB via API oficial de Meta únicamente | Evitar baneos — las cuentas son activos de clientes |
+| 2026-07-01 | Base de datos migrada de Render Postgres a Supabase | El Postgres gratuito de Render expiró a los 30+14 días de creado y se BORRÓ por completo, tumbando el sitio. Supabase gratis solo se pausa (no borra) tras 7 días sin actividad, y se restaura con un clic |
+| 2026-07-01 | Conexión a Supabase vía "Session Pooler" (IPv4), no conexión directa | La conexión directa de Supabase es IPv6-only y Render no tiene salida IPv6 — daba error P1001 "Can't reach database server" aunque la cadena estuviera bien escrita |
 
 ---
 
 ## INFORMACIÓN DEL DUEÑO — CONFIRMADA
 
 - **Nombre plataforma:** GoldenBot
-- **Hosting:** Vercel + Render + Neon + Upstash
+- **Hosting:** Vercel (frontend) + Render (backend/API) + Supabase (PostgreSQL, desde 2026-07-01)
 - **Clientes iniciales:** 2-3 en los primeros 3 meses
 - **WhatsApp:** Twilio Sandbox activo para pruebas. Pendiente: número real por cliente.
 - **Instagram/Facebook:** Pendiente — requiere app en Meta for Developers + verificación de negocio
@@ -116,7 +119,9 @@
 
 - WhatsApp Sandbox admite un solo webhook URL activo — para producción cada cliente necesita su propio número Twilio
 - Push notifications en iPhone: requieren iOS 16.4+ y app instalada como PWA desde Safari
-- Cambio manual de temperatura del lead: el backend tiene el endpoint pero el frontend de leads aún no tiene esa UI
+- Falta UI para ver el historial de cambios de temperatura del lead (el registro ya se guarda en TemperatureLog, solo falta mostrarlo)
+- **Remarketing depende de que el servidor esté despierto:** el scheduler usa un `setInterval` interno (no Redis/BullMQ pese a que están instalados como dependencia — es código sin usar), así que se detiene cada vez que Render duerme el servicio por inactividad (plan gratuito). Se resuelve pasando a plan pago de Render cuando haya clientes reales. el código de `remarketing` requiere `REDIS_URL` (bullmq + ioredis), pero no se encontró un servicio Redis/Upstash en `render.yaml`. Falta verificar si el remarketing automático realmente está corriendo en producción o si esa variable está seteada manualmente en el dashboard de Render.
+- **Incidente 2026-07-01:** el proyecto estuvo caído ~2 meses porque el Postgres gratuito de Render expiró (regla fija de 30+14 días desde su creación, no depende del uso) y se borró junto con todos sus datos (clientes, leads, conversaciones de prueba). Se recreó en Supabase, pero se perdió toda la información anterior — no había respaldo. **Pendiente:** definir una rutina de respaldo o pasar a un plan pago antes de tener clientes reales con datos que no se puedan perder.
 
 ---
 

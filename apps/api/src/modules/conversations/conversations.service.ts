@@ -4,6 +4,7 @@ import { prisma } from '../../config/database';
 import { getIO } from '../../config/socket';
 import { AppError } from '../../shared/middlewares/errorHandler';
 import { logger } from '../../shared/utils/logger';
+import { calculateHealthScore } from '../../shared/utils/healthScore';
 
 export async function getConversations(clientId: string, page = 1, limit = 30) {
   const skip = (page - 1) * limit;
@@ -298,12 +299,7 @@ export async function getDashboardMetrics(clientId: string) {
     })
   );
 
-  // Score de salud (0-100) — algoritmo simple basado en métricas
-  const hotRatio = totalLeads > 0 ? hotLeads / totalLeads : 0;
-  const warmRatio = totalLeads > 0 ? warmLeads / totalLeads : 0;
-  const activityScore = Math.min(conversationsToday * 5, 30);
-  const conversionScore = Math.round(hotRatio * 40 + warmRatio * 20 + activityScore);
-  const healthScore = Math.min(Math.max(conversionScore, 0), 100);
+  const healthScore = calculateHealthScore({ hotLeads, warmLeads, totalLeads, conversationsToday });
 
   return {
     conversationsToday,

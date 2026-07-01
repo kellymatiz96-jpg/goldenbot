@@ -9,6 +9,8 @@ export interface ClientSummary {
   plan: 'BASIC' | 'PROFESSIONAL' | 'PREMIUM';
   isActive: boolean;
   createdAt: string;
+  email: string | null;
+  lastActivityAt: string | null;
   _count: {
     leads: number;
     conversations: number;

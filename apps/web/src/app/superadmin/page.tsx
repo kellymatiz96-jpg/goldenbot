@@ -10,6 +10,12 @@ interface GlobalMetrics {
   inactiveClients: number;
   totalLeads: number;
   totalConversations: number;
+  conversationsToday: number;
+  coldLeads: number;
+  warmLeads: number;
+  hotLeads: number;
+  leadsWithoutResponse: number;
+  avgCommercialScore: number;
   clientsByPlan: Array<{ plan: string; count: number }>;
 }
 
@@ -54,7 +60,7 @@ export default function SuperadminDashboard() {
       </div>
 
       {/* KPIs principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <KPICard
           title="Clientes totales"
           value={metrics?.totalClients ?? 0}
@@ -68,17 +74,56 @@ export default function SuperadminDashboard() {
           color="bg-green-50 text-green-600"
         />
         <KPICard
+          title="Conversaciones hoy"
+          value={metrics?.conversationsToday ?? 0}
+          icon="💬"
+          color="bg-purple-50 text-purple-600"
+        />
+        <KPICard
           title="Total de leads"
           value={metrics?.totalLeads ?? 0}
           icon="🎯"
           color="bg-primary-50 text-primary-600"
         />
+      </div>
+
+      {/* Leads por temperatura + salud comercial */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <KPICard
-          title="Conversaciones"
-          value={metrics?.totalConversations ?? 0}
-          icon="💬"
-          color="bg-purple-50 text-purple-600"
+          title="Leads fríos"
+          value={metrics?.coldLeads ?? 0}
+          icon="🔵"
+          color="bg-blue-50 text-blue-600"
         />
+        <KPICard
+          title="Leads tibios"
+          value={metrics?.warmLeads ?? 0}
+          icon="🟠"
+          color="bg-orange-50 text-orange-600"
+        />
+        <KPICard
+          title="Leads calientes"
+          value={metrics?.hotLeads ?? 0}
+          icon="🔴"
+          color="bg-red-50 text-red-600"
+        />
+        <KPICard
+          title="Leads sin responder"
+          value={metrics?.leadsWithoutResponse ?? 0}
+          icon="⏳"
+          color="bg-yellow-50 text-yellow-600"
+        />
+      </div>
+
+      {/* Score comercial promedio */}
+      <div className="card mb-8 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-primary-50 text-primary-600">
+          📈
+        </div>
+        <div>
+          <p className="text-sm text-dark-500">Score comercial promedio</p>
+          <p className="text-2xl font-bold text-dark-900">{metrics?.avgCommercialScore ?? 0}/100</p>
+        </div>
       </div>
 
       {/* Distribución por plan */}

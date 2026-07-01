@@ -43,6 +43,14 @@
 - [x] Agentes: tabla, crear, activar/desactivar
 - [x] Widget web: página con código de inserción
 
+### Sistema de Citas/Agendamiento ✅ COMPLETO (agregado 2026-04-23/24)
+- [x] Formulario de cita estructurado (detección 100% por código, no depende de la IA)
+- [x] Al agendar, cierra la conversación automáticamente y la mueve a "Agendados"
+- [x] Estados de cita: Pendiente / Atendido / Cancelado + historial
+- [x] Fecha de agendado, notas editables, botón Desagendar
+- [x] Filtro "Agendados" en Leads, badge "Agendado" en vez de temperatura
+- [x] Ocultar conversaciones cerradas de la lista + fixes de duplicados/UX (respuesta de agente, detección de formulario en conversaciones largas)
+
 ---
 
 ## FASE 4 — CHATBOT E IA ✅ COMPLETADA
@@ -121,8 +129,8 @@
 ## FASE 7 — MÉTRICAS Y REPORTES [ ] PENDIENTE
 
 - [x] Dashboard básico: conversaciones hoy, leads por temperatura, score de salud, gráfica 7 días
-- [ ] Historial de cambios de temperatura del lead (visualización en el panel de leads)
-- [ ] Cambio manual de temperatura desde el panel de leads (UI + endpoint PUT /leads/:id/temperature)
+- [x] Cambio manual de temperatura desde el panel de leads (dropdown en tabla/tarjetas + endpoint PATCH /leads/:id/temperature, queda registrado en TemperatureLog)
+- [ ] Historial de cambios de temperatura del lead (visualización en el panel de leads — el registro en TemperatureLog ya existe, falta la UI para mostrarlo)
 - [ ] Tasa de conversión (leads → cierres)
 - [ ] Tiempo promedio de respuesta del bot
 - [ ] Gráfica: evolución mensual de conversaciones
