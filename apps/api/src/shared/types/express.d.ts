@@ -10,6 +10,8 @@ declare global {
         name: string;
         role: Role;
         clientId: string | null;
+        impersonatedBy?: string;
+        supportMode?: 'LIMITED' | 'SUPPORT';
       };
     }
   }

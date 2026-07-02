@@ -1,10 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../../shared/middlewares/authenticate';
+import { authenticate, blockInLimitedMode } from '../../shared/middlewares/authenticate';
 import { getLeads, updateLeadTemperature, updateAppointmentNotes, updateAppointmentStatus } from './leads.service';
 
 const router = Router();
 
 router.use(authenticate);
+router.use(blockInLimitedMode);
 
 // GET /leads — lista paginada con filtros
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

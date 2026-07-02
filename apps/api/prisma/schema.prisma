@@ -70,6 +70,23 @@ enum AppointmentStatus {
   CANCELLED  // Cancelada
 }
 
+enum SupportAccessStatus {
+  PENDING  // Solicitud del admin esperando respuesta del cliente
+  ACTIVE   // Acceso otorgado y vigente
+  DENIED   // El cliente rechazó la solicitud
+  REVOKED  // El cliente revocó un acceso que estaba activo
+}
+
+enum SupportAccessInitiator {
+  ADMIN   // El superadmin solicitó el acceso
+  CLIENT  // El cliente lo otorgó proactivamente
+}
+
+enum AdminAccessMode {
+  LIMITED  // Sin datos personales de leads/conversaciones
+  SUPPORT  // Acceso completo, autorizado por un SupportAccessGrant activo
+}
+
 // ============================================
 // CLIENTES (los clientes del superadmin)
 // ============================================
@@ -95,6 +112,8 @@ model Client {
   alerts        Alert[]
   remarketingCampaigns RemarketingCampaign[]
   appointments  Appointment[]
+  supportAccessGrants SupportAccessGrant[]
+  adminAccessLogs     AdminAccessLog[]
 
   @@map("clients")
 }
@@ -120,6 +139,7 @@ model User {
   // Conversaciones que este agente atiende
   assignedConversations Conversation[]
   pushSubscriptions     PushSubscription[]
+  adminAccessLogs       AdminAccessLog[]
 
   @@map("users")
 }
@@ -408,4 +428,50 @@ model Appointment {
   updatedAt DateTime @updatedAt
 
   @@map("appointments")
+}
+
+// ============================================
+// ACCESO DE SOPORTE (autorización del cliente para que el superadmin entre)
+// ============================================
+
+model SupportAccessGrant {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  status             SupportAccessStatus     @default(PENDING)
+  initiatedBy        SupportAccessInitiator
+  requestedByAdminId String?                 // User.id del superadmin, si initiatedBy = ADMIN
+  reason             String?                 // Motivo opcional de la solicitud
+  durationHours      Int?                    // Elegido por el cliente al otorgar/aprobar (1, 24 o 168)
+  expiresAt          DateTime?
+  respondedAt        DateTime?
+  revokedAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accessLogs AdminAccessLog[]
+
+  @@map("support_access_grants")
+}
+
+// ============================================
+// AUDITORÍA DE ACCESOS DEL SUPERADMIN A CUENTAS DE CLIENTES
+// ============================================
+
+model AdminAccessLog {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  adminId  String
+  admin    User   @relation(fields: [adminId], references: [id])
+
+  mode    AdminAccessMode
+  grantId String?
+  grant   SupportAccessGrant? @relation(fields: [grantId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("admin_access_logs")
 }

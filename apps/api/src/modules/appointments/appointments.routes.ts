@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../../shared/middlewares/authenticate';
+import { authenticate, blockInLimitedMode } from '../../shared/middlewares/authenticate';
 import {
   getAppointments,
   confirmAppointment,
@@ -9,6 +9,7 @@ import {
 
 const router = Router();
 router.use(authenticate);
+router.use(blockInLimitedMode);
 
 // GET /appointments — listar todas las citas del cliente
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

@@ -7,8 +7,6 @@ import { useClients, type ClientSummary } from '@/hooks/useClients';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { NewClientModal } from './NewClientModal';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 const planConfig = {
   BASIC: { label: 'Básico', variant: 'default' as const },
@@ -16,9 +14,22 @@ const planConfig = {
   PREMIUM: { label: 'Premium', variant: 'gold' as const },
 };
 
+const supportStatusConfig: Record<ClientSummary['supportStatus'], { label: string; variant: 'default' | 'success' | 'warning' | 'danger' }> = {
+  NONE: { label: 'Sin acceso', variant: 'default' },
+  PENDING: { label: 'Pendiente', variant: 'warning' },
+  ACTIVE: { label: 'Activo', variant: 'success' },
+  EXPIRED: { label: 'Vencido', variant: 'default' },
+  DENIED: { label: 'Rechazado', variant: 'danger' },
+  REVOKED: { label: 'Revocado', variant: 'danger' },
+};
+
+function ConnBadge({ on }: { on: boolean }) {
+  return <Badge variant={on ? 'success' : 'default'}>{on ? 'Sí' : 'No'}</Badge>;
+}
+
 export default function ClientsPage() {
   const router = useRouter();
-  const { clients, isLoading, createClient, impersonateClient } = useClients();
+  const { clients, isLoading, createClient, impersonateClient, requestSupportAccess } = useClients();
   const [showNewModal, setShowNewModal] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -30,8 +41,8 @@ export default function ClientsPage() {
   );
 
   const handleImpersonate = async (client: ClientSummary) => {
-    const token = await impersonateClient(client.id);
-    if (!token) return;
+    const result = await impersonateClient(client.id);
+    if (!result) return;
 
     // Guardar el token del superadmin para poder volver
     const superToken = localStorage.getItem('goldenbot_token');
@@ -41,13 +52,13 @@ export default function ClientsPage() {
     }
 
     // Usar el token del cliente
-    localStorage.setItem('goldenbot_token', token);
+    localStorage.setItem('goldenbot_token', result.accessToken);
     router.push('/dashboard');
   };
 
-  const formatLastActivity = (dateStr: string | null) => {
-    if (!dateStr) return 'Sin actividad';
-    return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: es });
+  const handleRequestAccess = async (client: ClientSummary) => {
+    const reason = window.prompt(`¿Por qué necesitas acceso a la cuenta de "${client.name}"? (opcional)`) ?? undefined;
+    await requestSupportAccess(client.id, reason || undefined);
   };
 
   return (
@@ -103,6 +114,8 @@ export default function ClientsPage() {
           <div className="flex flex-col gap-3 md:hidden pb-8">
             {filtered.map((client) => {
               const plan = planConfig[client.plan];
+              const support = supportStatusConfig[client.supportStatus];
+              const hasAccess = client.supportStatus === 'ACTIVE';
               return (
                 <div key={client.id} className="card p-4">
                   <div className="flex items-center gap-3 mb-3">
@@ -120,14 +133,26 @@ export default function ClientsPage() {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-dark-500 mb-3">
-                    <span>{client._count.leads} leads · {client._count.conversations} conversaciones</span>
-                    <span>{formatLastActivity(client.lastActivityAt)}</span>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs text-dark-500 mb-3">
+                    <div><p className="font-semibold text-dark-900">{client.leadsThisMonth}</p>Leads/mes</div>
+                    <div><p className="font-semibold text-dark-900">{client.unansweredCount}</p>Sin responder</div>
+                    <div><p className="font-semibold text-dark-900">{client.commercialScore}</p>Score</div>
                   </div>
-                  <div className="flex items-center gap-2 pt-3 border-t border-dark-100">
-                    <Button variant="secondary" size="sm" onClick={() => handleImpersonate(client)}>
-                      Entrar como cliente
-                    </Button>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs text-dark-400">Soporte:</span>
+                    <Badge variant={support.variant}>{support.label}</Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-dark-100">
+                    {hasAccess ? (
+                      <Button variant="secondary" size="sm" onClick={() => handleImpersonate(client)}>Entrar como cliente</Button>
+                    ) : (
+                      <>
+                        <Button variant="secondary" size="sm" onClick={() => handleImpersonate(client)}>Entrar en modo limitado</Button>
+                        {client.supportStatus !== 'PENDING' && (
+                          <Button variant="ghost" size="sm" onClick={() => handleRequestAccess(client)}>Solicitar acceso</Button>
+                        )}
+                      </>
+                    )}
                     <Link href={`/superadmin/clients/${client.id}`}>
                       <Button variant="ghost" size="sm">Ver cuenta</Button>
                     </Link>
@@ -138,65 +163,77 @@ export default function ClientsPage() {
           </div>
 
           {/* Tabla desktop */}
-          <div className="hidden md:block card p-0 overflow-hidden">
+          <div className="hidden md:block card p-0 overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-100 bg-dark-50">
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Cliente</th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Email</th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Estado</th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Total leads</th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Conversaciones</th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Última actividad</th>
-                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-5 py-3">Acciones</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Cliente</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Estado</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Plan</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Bot</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Widget</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">WhatsApp</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Leads mes</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Conv. mes</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Sin responder</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Score</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Soporte</th>
+                  <th className="text-left text-xs font-semibold text-dark-500 uppercase tracking-wider px-4 py-3">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-100">
                 {filtered.map((client) => {
-                  const plan = planConfig[client.plan];
+                  const support = supportStatusConfig[client.supportStatus];
+                  const hasAccess = client.supportStatus === 'ACTIVE';
                   return (
                     <tr key={client.id} className="hover:bg-dark-50 transition-colors">
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700 flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-700 flex-shrink-0">
                             {client.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-dark-900">{client.name}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-xs text-dark-400">/{client.slug}</span>
-                              <Badge variant={plan.variant}>{plan.label}</Badge>
-                            </div>
+                            <p className="text-xs text-dark-400">{client.email || `/${client.slug}`}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm text-dark-600">{client.email || '—'}</span>
-                      </td>
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-4">
                         <Badge variant={client.isActive ? 'success' : 'danger'}>
                           {client.isActive ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-semibold text-dark-900">{client._count.leads}</span>
+                      <td className="px-4 py-4">
+                        <Badge variant={planConfig[client.plan].variant}>{planConfig[client.plan].label}</Badge>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-semibold text-dark-900">{client._count.conversations}</span>
+                      <td className="px-4 py-4"><ConnBadge on={client.botActive} /></td>
+                      <td className="px-4 py-4"><ConnBadge on={client.widgetActive} /></td>
+                      <td className="px-4 py-4"><ConnBadge on={client.whatsappActive} /></td>
+                      <td className="px-4 py-4 text-sm font-semibold text-dark-900">{client.leadsThisMonth}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-dark-900">{client.conversationsThisMonth}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-dark-900">{client.unansweredCount}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-dark-900">{client.commercialScore}/100</td>
+                      <td className="px-4 py-4">
+                        <Badge variant={support.variant}>{support.label}</Badge>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm text-dark-600">{formatLastActivity(client.lastActivityAt)}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleImpersonate(client)}
-                            title="Acceder al panel del cliente"
-                          >
-                            Entrar como cliente
-                          </Button>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {hasAccess ? (
+                            <Button variant="secondary" size="sm" onClick={() => handleImpersonate(client)} title="Acceso completo autorizado">
+                              Entrar como cliente
+                            </Button>
+                          ) : (
+                            <>
+                              <Button variant="secondary" size="sm" onClick={() => handleImpersonate(client)} title="Sin datos personales de leads">
+                                Modo limitado
+                              </Button>
+                              {client.supportStatus !== 'PENDING' && (
+                                <Button variant="ghost" size="sm" onClick={() => handleRequestAccess(client)}>
+                                  Solicitar acceso
+                                </Button>
+                              )}
+                            </>
+                          )}
                           <Link href={`/superadmin/clients/${client.id}`}>
                             <Button variant="ghost" size="sm">Ver cuenta</Button>
                           </Link>

@@ -70,6 +70,7 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
           <NavItem href="/superadmin" icon="📊" label="Dashboard global" currentPath={pathname} />
           <NavItem href="/superadmin/clients" icon="👥" label="Clientes" currentPath={pathname} />
           <NavItem href="/superadmin/integrations" icon="🔌" label="Integraciones" currentPath={pathname} />
+          <NavItem href="/superadmin/audit-log" icon="🗂️" label="Auditoría de accesos" currentPath={pathname} />
           <NavItem href="/superadmin/settings" icon="⚙️" label="Configuración" currentPath={pathname} />
         </nav>
 

@@ -140,6 +140,18 @@
 
 ---
 
+## PANEL SUPERADMIN — SUPERVISIÓN Y PRIVACIDAD ✅ COMPLETO (2026-07-01/02)
+
+- [x] Dashboard global con KPIs agregados (sin datos personales), tabla de clientes ampliada (plan, bot/widget/WhatsApp, leads/conversaciones del mes, sin responder, score comercial, soporte)
+- [x] Página Integraciones (estado de canales por cliente) y Configuración (perfil + gestión de superadmins: crear/editar/eliminar)
+- [x] Quitadas del menú: Agentes, Leads globales, Conversaciones globales — exponían datos personales de leads/conversaciones de todos los clientes sin autorización del cliente
+- [x] Acceso de soporte con autorización: el cliente otorga acceso (1h/24h/7 días) proactivamente o aprobando una solicitud del admin, desde `Configuración → Acceso de soporte`
+- [x] "Entrar como cliente" ahora se autorregula: sin autorización vigente entra en modo limitado (sin Leads/Conversaciones/Remarketing, bloqueado también en el backend); con autorización entra en modo soporte completo
+- [x] Auditoría de accesos: registro de cada entrada de un admin a una cuenta de cliente (modo, motivo, fecha)
+- [x] Protección: un admin impersonando no puede aprobarse/otorgarse acceso a sí mismo
+
+---
+
 ## FASE 8 — PREPARACIÓN PRODUCCIÓN [ ] PENDIENTE
 
 - [ ] Revisión de seguridad: autenticación y autorización en todos los endpoints

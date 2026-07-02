@@ -9,6 +9,8 @@ interface JWTPayload {
   name: string;
   role: Role;
   clientId: string | null;
+  impersonatedBy?: string;
+  supportMode?: 'LIMITED' | 'SUPPORT';
 }
 
 // Middleware: verifica que el request tenga un JWT válido
@@ -46,6 +48,33 @@ export function authorize(...roles: Role[]) {
 
     next();
   };
+}
+
+// Middleware: bloquea el acceso a datos personales de leads cuando el superadmin
+// entró en modo limitado (sin autorización de acceso de soporte del cliente)
+export function blockInLimitedMode(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.supportMode === 'LIMITED') {
+    res.status(403).json({
+      success: false,
+      message: 'Necesitas un acceso de soporte autorizado por el cliente para ver esta información',
+    });
+    return;
+  }
+  next();
+}
+
+// Middleware: bloquea acciones que solo el dueño real de la cuenta debe poder hacer
+// (otorgar/aprobar/rechazar/revocar acceso de soporte) — un superadmin impersonando
+// (con o sin acceso de soporte) nunca debe poder autorizarse a sí mismo
+export function blockIfImpersonating(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.impersonatedBy) {
+    res.status(403).json({
+      success: false,
+      message: 'Esta acción solo la puede realizar el dueño de la cuenta, no un administrador con acceso de soporte',
+    });
+    return;
+  }
+  next();
 }
 
 // Middleware: verifica que el cliente en la URL coincida con el del usuario autenticado

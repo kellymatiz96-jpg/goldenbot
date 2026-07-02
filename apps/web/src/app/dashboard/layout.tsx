@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { decodeJwtPayload, type GoldenBotTokenPayload } from '@/lib/jwt';
 
 // Reproduce un sonido de notificación usando Web Audio API (sin archivos externos)
 function playNotificationSound(type: 'alert' | 'message' = 'alert') {
@@ -62,6 +63,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isAuthenticated, loadFromStorage, logout } = useAuthStore();
   const [pendingAgentCount, setPendingAgentCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLimitedMode, setIsLimitedMode] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('goldenbot_token');
+    if (!token) return;
+    const payload = decodeJwtPayload<GoldenBotTokenPayload>(token);
+    setIsLimitedMode(payload?.supportMode === 'LIMITED');
+  }, []);
   // Desbloquear audio en el primer clic del usuario (política de navegadores)
   const audioUnlocked = useRef(false);
   useEffect(() => {
@@ -177,22 +186,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           Principal
         </p>
         <NavItem href="/dashboard" icon="📊" label="Dashboard" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
-        <NavItem href="/dashboard/leads" icon="🎯" label="Leads" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
-        <NavItem href="/dashboard/remarketing" icon="📢" label="Remarketing" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
-        <NavItem
-          href="/dashboard/conversations"
-          icon="💬"
-          label="Conversaciones"
-          currentPath={pathname}
-          badge={pendingAgentCount}
-          onClick={() => setSidebarOpen(false)}
-        />
+        {!isLimitedMode && (
+          <>
+            <NavItem href="/dashboard/leads" icon="🎯" label="Leads" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
+            <NavItem href="/dashboard/remarketing" icon="📢" label="Remarketing" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
+            <NavItem
+              href="/dashboard/conversations"
+              icon="💬"
+              label="Conversaciones"
+              currentPath={pathname}
+              badge={pendingAgentCount}
+              onClick={() => setSidebarOpen(false)}
+            />
+          </>
+        )}
         <p className="text-xs text-dark-500 font-semibold uppercase tracking-wider px-3 mb-2 mt-5">
           Configuración
         </p>
         <NavItem href="/dashboard/settings/business" icon="🏢" label="Mi negocio" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
         <NavItem href="/dashboard/settings/agents" icon="👤" label="Agentes" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
         <NavItem href="/dashboard/settings/webchat" icon="🌐" label="Widget web" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
+        <NavItem href="/dashboard/settings/support-access" icon="🔐" label="Acceso de soporte" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
       </nav>
 
       {/* Footer — perfil */}

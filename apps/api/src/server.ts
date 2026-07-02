@@ -27,6 +27,8 @@ import notificationsRoutes from './modules/notifications/notifications.routes';
 import appointmentsRoutes from './modules/appointments/appointments.routes';
 import adminOverviewRoutes from './modules/admin/admin.routes';
 import superadminsRoutes from './modules/superadmins/superadmins.routes';
+import supportAccessRoutes from './modules/support-access/support-access.routes';
+import supportAccessAdminRoutes from './modules/support-access/support-access.admin.routes';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -97,6 +99,8 @@ app.use('/notifications', notificationsRoutes);
 app.use('/appointments', appointmentsRoutes);
 app.use('/admin/overview', adminOverviewRoutes);
 app.use('/admin/superadmins', superadminsRoutes);
+app.use('/client/support-access', supportAccessRoutes);
+app.use('/admin/support-access', supportAccessAdminRoutes);
 
 // ---- 404 ----
 app.use((_req, res) => {

@@ -3,16 +3,24 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { decodeJwtPayload, type GoldenBotTokenPayload } from '@/lib/jwt';
 
 // Muestra un banner cuando el superadmin está viendo el panel de un cliente
 export function ImpersonationBanner() {
   const router = useRouter();
   const { loadFromStorage } = useAuthStore();
   const [isImpersonating, setIsImpersonating] = useState(false);
+  const [supportMode, setSupportMode] = useState<'LIMITED' | 'SUPPORT' | null>(null);
 
   useEffect(() => {
     const superToken = localStorage.getItem('goldenbot_superadmin_token');
     setIsImpersonating(!!superToken);
+
+    if (superToken) {
+      const currentToken = localStorage.getItem('goldenbot_token');
+      const payload = currentToken ? decodeJwtPayload<GoldenBotTokenPayload>(currentToken) : null;
+      setSupportMode(payload?.supportMode ?? null);
+    }
   }, []);
 
   if (!isImpersonating) return null;
@@ -31,11 +39,17 @@ export function ImpersonationBanner() {
     }
   };
 
+  const isLimited = supportMode === 'LIMITED';
+
   return (
-    <div className="bg-primary-500 text-white px-4 py-2 flex items-center justify-between text-sm">
+    <div className={`px-4 py-2 flex items-center justify-between text-sm text-white ${isLimited ? 'bg-dark-700' : 'bg-primary-500'}`}>
       <div className="flex items-center gap-2">
-        <span>👁</span>
-        <span className="font-medium">Estás viendo el panel como administrador del cliente</span>
+        <span>{isLimited ? '🔒' : '👁'}</span>
+        <span className="font-medium">
+          {isLimited
+            ? 'Estás en modo limitado — sin acceso a leads ni conversaciones'
+            : 'Estás en modo soporte con acceso autorizado. Todas las acciones quedan registradas.'}
+        </span>
       </div>
       <button
         onClick={handleReturn}

@@ -5,6 +5,7 @@ import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { AppError } from '../../shared/middlewares/errorHandler';
 import { calculateHealthScore } from '../../shared/utils/healthScore';
+import { getActiveGrant, logAccess } from '../support-access/support-access.service';
 
 interface CreateClientInput {
   name: string;
@@ -16,6 +17,10 @@ interface CreateClientInput {
 }
 
 export async function listClients() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
   const clients = await prisma.client.findMany({
     orderBy: { createdAt: 'desc' },
     select: {
@@ -30,31 +35,85 @@ export async function listClients() {
         take: 1,
         select: { email: true },
       },
-      conversations: {
-        orderBy: { lastMessageAt: 'desc' },
-        take: 1,
-        select: { lastMessageAt: true },
-      },
+      channels: { select: { type: true, isActive: true } },
+      aiConfig: { select: { id: true } },
       _count: {
-        select: {
-          leads: true,
-          conversations: true,
-        },
+        select: { leads: true, conversations: true },
       },
     },
   });
 
-  return clients.map((c) => ({
-    id: c.id,
-    name: c.name,
-    slug: c.slug,
-    plan: c.plan,
-    isActive: c.isActive,
-    createdAt: c.createdAt,
-    email: c.users[0]?.email ?? null,
-    lastActivityAt: c.conversations[0]?.lastMessageAt ?? null,
-    _count: c._count,
-  }));
+  return Promise.all(
+    clients.map(async (c) => {
+      const [
+        leadsThisMonth,
+        conversationsThisMonth,
+        hotLeads,
+        warmLeads,
+        totalActiveLeads,
+        conversationsToday,
+        waitingConversations,
+        lastGrant,
+      ] = await Promise.all([
+        prisma.lead.count({ where: { clientId: c.id, createdAt: { gte: startOfMonth } } }),
+        prisma.conversation.count({ where: { clientId: c.id, createdAt: { gte: startOfMonth } } }),
+        prisma.lead.count({ where: { clientId: c.id, temperature: 'HOT', isActive: true } }),
+        prisma.lead.count({ where: { clientId: c.id, temperature: 'WARM', isActive: true } }),
+        prisma.lead.count({ where: { clientId: c.id, isActive: true } }),
+        prisma.conversation.count({ where: { clientId: c.id, createdAt: { gte: today } } }),
+        prisma.conversation.findMany({
+          where: { clientId: c.id, status: 'AGENT_ACTIVE' },
+          select: { messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { role: true } } },
+        }),
+        prisma.supportAccessGrant.findFirst({
+          where: { clientId: c.id },
+          orderBy: { createdAt: 'desc' },
+          select: { status: true, expiresAt: true, initiatedBy: true },
+        }),
+      ]);
+
+      const unansweredCount = waitingConversations.filter(
+        (conv) => conv.messages.length === 0 || conv.messages[0].role === 'user'
+      ).length;
+
+      const commercialScore = calculateHealthScore({
+        hotLeads,
+        warmLeads,
+        totalLeads: totalActiveLeads,
+        conversationsToday,
+      });
+
+      let supportStatus: 'NONE' | 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'DENIED' | 'REVOKED' = 'NONE';
+      if (lastGrant) {
+        if (lastGrant.status === 'ACTIVE' && lastGrant.expiresAt && lastGrant.expiresAt > new Date()) {
+          supportStatus = 'ACTIVE';
+        } else if (lastGrant.status === 'ACTIVE') {
+          supportStatus = 'EXPIRED';
+        } else {
+          supportStatus = lastGrant.status;
+        }
+      }
+
+      return {
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        plan: c.plan,
+        isActive: c.isActive,
+        createdAt: c.createdAt,
+        email: c.users[0]?.email ?? null,
+        botActive: c.isActive && !!c.aiConfig,
+        widgetActive: c.channels.find((ch) => ch.type === 'WEBCHAT')?.isActive ?? false,
+        whatsappActive: c.channels.find((ch) => ch.type === 'WHATSAPP')?.isActive ?? false,
+        leadsThisMonth,
+        conversationsThisMonth,
+        unansweredCount,
+        commercialScore,
+        supportStatus,
+        _count: c._count,
+      };
+    })
+  );
 }
 
 export async function getClientById(id: string) {
@@ -180,7 +239,18 @@ export async function impersonateClient(clientId: string, superadminId: string) 
 
   const clientAdmin = client.users[0];
 
-  // Token especial de impersonación con expiración corta (1 hora)
+  // Decide el modo del lado del servidor — nunca confía en qué botón usó el frontend.
+  // Solo hay acceso completo si el cliente autorizó un acceso de soporte vigente.
+  const activeGrant = await getActiveGrant(clientId);
+  const supportMode: 'LIMITED' | 'SUPPORT' = activeGrant ? 'SUPPORT' : 'LIMITED';
+
+  // El token nunca dura más de 1 hora, y si hay un grant activo, tampoco más de lo que le quede
+  let expiresInSeconds = 60 * 60;
+  if (activeGrant?.expiresAt) {
+    const remainingSeconds = Math.floor((activeGrant.expiresAt.getTime() - Date.now()) / 1000);
+    expiresInSeconds = Math.max(60, Math.min(expiresInSeconds, remainingSeconds));
+  }
+
   const token = jwt.sign(
     {
       id: clientAdmin.id,
@@ -189,37 +259,44 @@ export async function impersonateClient(clientId: string, superadminId: string) 
       role: clientAdmin.role,
       clientId: client.id,
       impersonatedBy: superadminId,
+      supportMode,
     },
     env.jwt.secret,
-    { expiresIn: '1h' }
+    { expiresIn: expiresInSeconds }
   );
 
-  return { accessToken: token, client: { id: client.id, name: client.name } };
+  await logAccess(clientId, superadminId, supportMode, activeGrant?.id);
+
+  return { accessToken: token, client: { id: client.id, name: client.name }, supportMode };
 }
 
 export async function getGlobalMetrics() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
   const [
     totalClients,
     activeClients,
-    totalLeads,
-    totalConversations,
+    activeBots,
     conversationsToday,
-    coldLeads,
-    warmLeads,
-    hotLeads,
+    leadsThisMonth,
+    widgetsInstalled,
+    whatsappConnected,
+    pendingSupportRequests,
+    activeSupportAccess,
     waitingConversations,
+    clientsByPlan,
   ] = await Promise.all([
     prisma.client.count(),
     prisma.client.count({ where: { isActive: true } }),
-    prisma.lead.count(),
-    prisma.conversation.count(),
+    prisma.client.count({ where: { isActive: true, aiConfig: { isNot: null } } }),
     prisma.conversation.count({ where: { createdAt: { gte: today } } }),
-    prisma.lead.count({ where: { temperature: 'COLD', isActive: true } }),
-    prisma.lead.count({ where: { temperature: 'WARM', isActive: true } }),
-    prisma.lead.count({ where: { temperature: 'HOT', isActive: true } }),
+    prisma.lead.count({ where: { createdAt: { gte: startOfMonth } } }),
+    prisma.channel.count({ where: { type: 'WEBCHAT', isActive: true } }),
+    prisma.channel.count({ where: { type: 'WHATSAPP', isActive: true } }),
+    prisma.supportAccessGrant.count({ where: { status: 'PENDING' } }),
+    prisma.supportAccessGrant.count({ where: { status: 'ACTIVE', expiresAt: { gt: new Date() } } }),
     // Conversaciones con agente activo — se revisa el último mensaje de cada una
     // para saber si el lead está esperando respuesta (mismo criterio que el
     // badge "esperando agente" del panel del cliente)
@@ -233,58 +310,25 @@ export async function getGlobalMetrics() {
         },
       },
     }),
+    prisma.client.groupBy({ by: ['plan'], _count: true }),
   ]);
 
   const leadsWithoutResponse = waitingConversations.filter(
     (c) => c.messages.length === 0 || c.messages[0].role === 'user'
   ).length;
 
-  const clientsByPlan = await prisma.client.groupBy({
-    by: ['plan'],
-    _count: true,
-  });
-
-  // Score comercial promedio — mismo cálculo del score de salud del panel
-  // cliente, promediado entre todos los clientes activos
-  const activeClientsData = await prisma.client.findMany({
-    where: { isActive: true },
-    select: {
-      leads: { where: { isActive: true }, select: { temperature: true } },
-      conversations: { where: { createdAt: { gte: today } }, select: { id: true } },
-    },
-  });
-
-  const avgCommercialScore = activeClientsData.length
-    ? Math.round(
-        activeClientsData.reduce((sum, c) => {
-          const total = c.leads.length;
-          const hot = c.leads.filter((l) => l.temperature === 'HOT').length;
-          const warm = c.leads.filter((l) => l.temperature === 'WARM').length;
-          return (
-            sum +
-            calculateHealthScore({
-              hotLeads: hot,
-              warmLeads: warm,
-              totalLeads: total,
-              conversationsToday: c.conversations.length,
-            })
-          );
-        }, 0) / activeClientsData.length
-      )
-    : 0;
-
   return {
     totalClients,
     activeClients,
     inactiveClients: totalClients - activeClients,
-    totalLeads,
-    totalConversations,
+    activeBots,
     conversationsToday,
-    coldLeads,
-    warmLeads,
-    hotLeads,
+    leadsThisMonth,
     leadsWithoutResponse,
-    avgCommercialScore,
+    widgetsInstalled,
+    whatsappConnected,
+    pendingSupportRequests,
+    activeSupportAccess,
     clientsByPlan: clientsByPlan.map((c) => ({ plan: c.plan, count: c._count })),
   };
 }

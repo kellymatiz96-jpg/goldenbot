@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../../shared/middlewares/authenticate';
+import { authenticate, blockInLimitedMode } from '../../shared/middlewares/authenticate';
 import {
   getConversations,
   getConversationWithMessages,
@@ -24,6 +24,10 @@ router.get('/dashboard', async (req: Request, res: Response, next: NextFunction)
     next(err);
   }
 });
+
+// A partir de aquí, todas las rutas exponen datos personales de leads/conversaciones —
+// bloqueadas en modo limitado (sin acceso de soporte autorizado por el cliente)
+router.use(blockInLimitedMode);
 
 // GET /conversations — lista paginada
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {

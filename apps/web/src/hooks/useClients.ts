@@ -10,7 +10,14 @@ export interface ClientSummary {
   isActive: boolean;
   createdAt: string;
   email: string | null;
-  lastActivityAt: string | null;
+  botActive: boolean;
+  widgetActive: boolean;
+  whatsappActive: boolean;
+  leadsThisMonth: number;
+  conversationsThisMonth: number;
+  unansweredCount: number;
+  commercialScore: number;
+  supportStatus: 'NONE' | 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'DENIED' | 'REVOKED';
   _count: {
     leads: number;
     conversations: number;
@@ -96,17 +103,40 @@ export function useClients() {
     }
   };
 
-  const impersonateClient = async (id: string): Promise<string | null> => {
+  const impersonateClient = async (id: string): Promise<{ accessToken: string; supportMode: 'LIMITED' | 'SUPPORT' } | null> => {
     try {
       const { data } = await api.post(`/admin/clients/${id}/impersonate`);
-      return data.data.accessToken;
+      return { accessToken: data.data.accessToken, supportMode: data.data.supportMode };
     } catch {
       toast.error('Error al acceder al panel del cliente');
       return null;
     }
   };
 
-  return { clients, isLoading, createClient, toggleClientStatus, impersonateClient, refetch: fetchClients };
+  const requestSupportAccess = async (id: string, reason?: string): Promise<boolean> => {
+    try {
+      await api.post(`/admin/support-access/clients/${id}/request`, { reason });
+      toast.success('Solicitud de acceso enviada al cliente');
+      await fetchClients();
+      return true;
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Error al solicitar acceso';
+      toast.error(msg);
+      return false;
+    }
+  };
+
+  return {
+    clients,
+    isLoading,
+    createClient,
+    toggleClientStatus,
+    impersonateClient,
+    requestSupportAccess,
+    refetch: fetchClients,
+  };
 }
 
 export function useClientDetail(id: string) {

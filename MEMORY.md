@@ -1,7 +1,7 @@
 # MEMORY.md — Estado Actual del Proyecto
 
 > Actualizar este archivo al final de cada sesión de trabajo.
-> Fecha de última actualización: 2026-07-01
+> Fecha de última actualización: 2026-07-02
 
 ---
 
@@ -20,14 +20,27 @@
 - Interceptor Axios renueva el token automáticamente antes de cerrar sesión
 - JWT_SECRET y JWT_REFRESH_SECRET estables en Render (sync: false) — no se regeneran al reiniciar
 - Roles: SUPERADMIN, CLIENT_ADMIN, AGENT
-- Impersonación: superadmin puede entrar al panel de cualquier cliente
+- Impersonación con acceso de soporte autorizado (ver abajo) — ya NO es acceso libre
 - Rate limiting, CORS, Helmet, compresión configurados
 
 ### Panel Superadmin
-- Dashboard con KPIs globales
+- Dashboard con KPIs globales agregados (sin datos personales de leads): clientes activos, bots activos, conversaciones hoy, leads del mes, leads sin responder, widgets instalados, WhatsApp conectados, solicitudes/accesos de soporte
 - Crear, editar, activar/desactivar clientes
-- Ver detalle de cada cliente con usuarios y canales
-- Botón "Ver panel" con impersonation + banner de retorno
+- Tabla de clientes: estado, plan, bot/widget/WhatsApp conectado, leads y conversaciones del mes, leads sin responder, score comercial, estado de soporte
+- Ver cuenta de cada cliente (detalle con usuarios y canales, edición inline)
+- Integraciones: estado de canales conectados por cliente
+- Auditoría de accesos: registro de cada vez que un admin entra a una cuenta de cliente
+- Menú: Dashboard global, Clientes, Integraciones, Auditoría de accesos, Configuración (gestión de superadmins)
+
+### Acceso de soporte con autorización (2026-07-02)
+Por ley de protección de datos, el superadmin NO puede ver los leads/conversaciones de un cliente sin que el cliente lo autorice:
+- **"Entrar como cliente"** ahora se autorregula del lado del servidor según si hay un `SupportAccessGrant` activo:
+  - Sin grant activo → entra en **modo limitado** (sin Leads/Conversaciones/Remarketing en el menú del cliente; el backend bloquea esos endpoints con 403 aunque se fuerce la URL)
+  - Con grant activo → entra en **modo soporte** (acceso completo, banner visible, expira con el grant o en 1h, lo que sea antes)
+- El cliente autoriza el acceso desde `Configuración → Acceso de soporte`: puede otorgarlo proactivamente (1h/24h/7 días), o aprobar/rechazar una solicitud que el admin mandó desde la tabla de Clientes
+- El cliente puede revocar el acceso en cualquier momento
+- Un admin impersonando (modo limitado o soporte) NUNCA puede aprobarse/otorgarse acceso a sí mismo — esas acciones están bloqueadas si el token tiene `impersonatedBy`
+- Todo acceso (limitado o soporte) queda registrado en `AdminAccessLog`, visible en Auditoría de accesos
 
 ### Panel del Cliente — Dashboard
 - 4 KPIs: conversaciones hoy, activas ahora, total leads, score de salud
@@ -99,6 +112,8 @@
 | 2026-04-22 | Instagram/FB via API oficial de Meta únicamente | Evitar baneos — las cuentas son activos de clientes |
 | 2026-07-01 | Base de datos migrada de Render Postgres a Supabase | El Postgres gratuito de Render expiró a los 30+14 días de creado y se BORRÓ por completo, tumbando el sitio. Supabase gratis solo se pausa (no borra) tras 7 días sin actividad, y se restaura con un clic |
 | 2026-07-01 | Conexión a Supabase vía "Session Pooler" (IPv4), no conexión directa | La conexión directa de Supabase es IPv6-only y Render no tiene salida IPv6 — daba error P1001 "Can't reach database server" aunque la cadena estuviera bien escrita |
+| 2026-07-01 | El panel superadmin NO debe tener vistas globales de leads/conversaciones (nombres, teléfonos, contenido de chats) de todos los clientes | Riesgo legal/privacidad: GoldenBot se vende a clientes como SaaS, y sus clientes no esperan que el operador de la plataforma navegue libremente los datos de sus propios leads. Para soporte puntual se usa "Entrar como cliente" (impersonación con token de 1h), que es una acción explícita y acotada, no una tabla siempre abierta. Aplica también a futuras secciones: cualquier vista a nivel superadmin debe mostrar solo datos agregados (conteos) o datos del cliente-negocio (no de los leads/clientes finales de cada cliente) |
+| 2026-07-02 | Impersonación reemplazada por "acceso de soporte" con autorización del cliente (grant + modo limitado + auditoría) | Ir un paso más allá de solo quitar vistas globales: ni siquiera con "Entrar como cliente" el admin debía poder ver datos personales sin que el cliente lo autorice explícitamente. Ahora el servidor decide el modo (limitado/soporte) según si hay un `SupportAccessGrant` vigente — nunca confía en el botón que usó el frontend |
 
 ---
 
