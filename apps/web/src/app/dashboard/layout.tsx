@@ -224,7 +224,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Footer — perfil */}
       <div className="px-3 py-4 border-t border-dark-700">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1">
+        <Link
+          href="/dashboard/settings/profile"
+          onClick={() => setSidebarOpen(false)}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1 hover:bg-dark-700 transition-colors"
+        >
           <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
@@ -232,7 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <p className="text-sm font-medium text-white truncate">{user.name}</p>
             <p className="text-xs text-dark-400 truncate">{user.email}</p>
           </div>
-        </div>
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full text-left px-3 py-2 text-sm text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
