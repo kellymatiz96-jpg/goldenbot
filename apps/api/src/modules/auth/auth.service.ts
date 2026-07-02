@@ -11,6 +11,7 @@ interface LoginResult {
     name: string;
     role: string;
     clientId: string | null;
+    mustChangePassword: boolean;
   };
   accessToken: string;
   refreshToken: string;
@@ -66,6 +67,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
       name: user.name,
       role: user.role,
       clientId: user.clientId,
+      mustChangePassword: user.mustChangePassword,
     },
     accessToken,
     refreshToken,
@@ -109,6 +111,7 @@ export async function getMe(userId: string) {
       name: true,
       role: true,
       clientId: true,
+      mustChangePassword: true,
       createdAt: true,
       client: {
         select: { id: true, name: true, plan: true },
@@ -121,4 +124,43 @@ export async function getMe(userId: string) {
   }
 
   return user;
+}
+
+export async function updateProfile(userId: string, data: { name?: string; email?: string }) {
+  if (data.email) {
+    const existing = await prisma.user.findUnique({ where: { email: data.email.toLowerCase() } });
+    if (existing && existing.id !== userId) {
+      throw new AppError('Ya existe un usuario con ese email', 400);
+    }
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(data.name && { name: data.name }),
+      ...(data.email && { email: data.email.toLowerCase() }),
+    },
+    select: { id: true, email: true, name: true, role: true, clientId: true, mustChangePassword: true },
+  });
+}
+
+export async function changePassword(userId: string, currentPassword: string, newPassword: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError('Usuario no encontrado', 404);
+  }
+
+  const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!passwordMatch) {
+    throw new AppError('La contraseña actual es incorrecta', 400);
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword, mustChangePassword: false },
+  });
+
+  return { success: true };
 }

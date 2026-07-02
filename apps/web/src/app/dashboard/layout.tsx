@@ -11,6 +11,8 @@ import { api } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { decodeJwtPayload, type GoldenBotTokenPayload } from '@/lib/jwt';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 
 // Reproduce un sonido de notificación usando Web Audio API (sin archivos externos)
 function playNotificationSound(type: 'alert' | 'message' = 'alert') {
@@ -64,13 +66,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [pendingAgentCount, setPendingAgentCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLimitedMode, setIsLimitedMode] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [showPasswordNudge, setShowPasswordNudge] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('goldenbot_token');
     if (!token) return;
     const payload = decodeJwtPayload<GoldenBotTokenPayload>(token);
     setIsLimitedMode(payload?.supportMode === 'LIMITED');
+    setIsImpersonating(!!payload?.impersonatedBy);
   }, []);
+
+  // Aviso para cambiar la contraseña genérica — nunca durante una sesión impersonada
+  useEffect(() => {
+    if (user?.mustChangePassword && !isImpersonating) {
+      setShowPasswordNudge(true);
+    }
+  }, [user?.mustChangePassword, isImpersonating]);
   // Desbloquear audio en el primer clic del usuario (política de navegadores)
   const audioUnlocked = useRef(false);
   useEffect(() => {
@@ -207,6 +219,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <NavItem href="/dashboard/settings/agents" icon="👤" label="Agentes" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
         <NavItem href="/dashboard/settings/webchat" icon="🌐" label="Widget web" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
         <NavItem href="/dashboard/settings/support-access" icon="🔐" label="Acceso de soporte" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
+        <NavItem href="/dashboard/settings/profile" icon="🙋" label="Mi perfil" currentPath={pathname} onClick={() => setSidebarOpen(false)} />
       </nav>
 
       {/* Footer — perfil */}
@@ -234,6 +247,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex flex-col bg-dark-50">
       <ImpersonationBanner />
       <PushNotificationProvider />
+
+      {showPasswordNudge && (
+        <Modal isOpen title="Cambia tu contraseña" onClose={() => setShowPasswordNudge(false)} size="sm">
+          <p className="text-sm text-dark-600 mb-5">
+            Tu cuenta se creó con una contraseña genérica. Por seguridad, te recomendamos cambiarla ahora.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowPasswordNudge(false)}>Más tarde</Button>
+            <Button
+              onClick={() => {
+                setShowPasswordNudge(false);
+                router.push('/dashboard/settings/profile');
+              }}
+            >
+              Cambiar ahora
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       {/* Topbar móvil */}
       <header className="md:hidden bg-dark-900 text-white flex items-center justify-between px-4 py-3 sticky top-0 z-20">

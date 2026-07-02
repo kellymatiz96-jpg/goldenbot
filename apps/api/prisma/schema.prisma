@@ -129,6 +129,7 @@ model User {
   name      String
   role      Role     @default(AGENT)
   isActive  Boolean  @default(true)
+  mustChangePassword Boolean @default(false) // true cuando un admin le asignó una contraseña genérica
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

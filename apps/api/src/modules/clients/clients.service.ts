@@ -180,6 +180,7 @@ export async function createClient(input: CreateClientInput) {
         name: input.adminName,
         role: 'CLIENT_ADMIN',
         clientId: client.id,
+        mustChangePassword: true,
       },
     });
 

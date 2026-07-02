@@ -7,6 +7,7 @@ interface User {
   name: string;
   role: 'SUPERADMIN' | 'CLIENT_ADMIN' | 'AGENT';
   clientId: string | null;
+  mustChangePassword: boolean;
 }
 
 interface AuthState {
@@ -16,9 +17,10 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loadFromStorage: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: false,
   isAuthenticated: false,
@@ -45,6 +47,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('goldenbot_refresh_token');
     localStorage.removeItem('goldenbot_user');
     set({ user: null, isAuthenticated: false });
+  },
+
+  updateUser: (updates: Partial<User>) => {
+    const current = get().user;
+    if (!current) return;
+    const updated = { ...current, ...updates };
+    localStorage.setItem('goldenbot_user', JSON.stringify(updated));
+    set({ user: updated });
   },
 
   loadFromStorage: () => {

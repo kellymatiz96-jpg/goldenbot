@@ -57,6 +57,7 @@ Por ley de protección de datos, el superadmin NO puede ver los leads/conversaci
 - Banner "Esperando agente" cuando el lead solicitó atención humana
 - Badge en sidebar con conteo de conversaciones esperando agente
 - Sonidos: 4 pitidos para alertas urgentes, 1 pitido suave para mensajes nuevos
+- **Mi perfil:** el cliente (y el superadmin en su Configuración) puede editar su nombre/email y cambiar su contraseña (pide la actual). Si su cuenta se creó con contraseña genérica (por un admin), ve un aviso — modal al entrar + aviso en la pantalla — invitándolo a cambiarla. Este aviso nunca aparece durante una sesión impersonada
 - **Sistema de citas/agendamiento:** formulario estructurado de cita (detección por código, no depende de la IA); al agendar cierra la conversación y la mueve a "Agendados"; estados Pendiente/Atendido/Cancelado con historial; notas editables, botón Desagendar; filtro "Agendados" en Leads
 
 ### Panel del Cliente — Configuración

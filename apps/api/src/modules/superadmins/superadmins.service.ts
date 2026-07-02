@@ -24,6 +24,7 @@ export async function createSuperadmin(input: { name: string; email: string; pas
       email: input.email.toLowerCase(),
       password: hashedPassword,
       role: 'SUPERADMIN',
+      mustChangePassword: true,
     },
     select: { id: true, name: true, email: true, isActive: true, createdAt: true },
   });

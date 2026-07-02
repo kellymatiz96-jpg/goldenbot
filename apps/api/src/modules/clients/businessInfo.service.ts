@@ -65,6 +65,7 @@ export async function createAgent(
       password: hashedPassword,
       role: 'AGENT',
       clientId,
+      mustChangePassword: true,
     },
     select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
   });
