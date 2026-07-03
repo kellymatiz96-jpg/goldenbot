@@ -43,6 +43,7 @@
 - [x] Agentes: tabla, crear, activar/desactivar
 - [x] Widget web: página con código de inserción
 - [x] Mi perfil: editar nombre/email, cambiar contraseña (pide la actual); aviso de "cambia tu contraseña genérica" al primer login para cuentas creadas por un admin (cliente, agente o superadmin) — nunca se muestra durante una sesión impersonada (2026-07-02)
+- [x] Checklist "Primeros pasos" en el Dashboard: cambiar contraseña, completar info del negocio, conectar un canal — se oculta sola al completarse (2026-07-03)
 
 ### Sistema de Citas/Agendamiento ✅ COMPLETO (agregado 2026-04-23/24)
 - [x] Formulario de cita estructurado (detección 100% por código, no depende de la IA)

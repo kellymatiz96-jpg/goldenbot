@@ -22,6 +22,18 @@ export async function getBusinessInfo(clientId: string) {
   return info;
 }
 
+export async function getOnboardingStatus(clientId: string) {
+  const [businessInfo, activeChannels] = await Promise.all([
+    prisma.businessInfo.findUnique({ where: { clientId }, select: { businessName: true } }),
+    prisma.channel.count({ where: { clientId, isActive: true } }),
+  ]);
+
+  return {
+    businessInfoComplete: !!businessInfo?.businessName,
+    channelConnected: activeChannels > 0,
+  };
+}
+
 export async function upsertBusinessInfo(clientId: string, input: BusinessInfoInput) {
   return prisma.businessInfo.upsert({
     where: { clientId },

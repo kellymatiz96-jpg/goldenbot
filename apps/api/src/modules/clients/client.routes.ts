@@ -8,6 +8,7 @@ import {
   getAgents,
   createAgent,
   updateAgent,
+  getOnboardingStatus,
 } from './businessInfo.service';
 
 const router = Router();
@@ -40,6 +41,16 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
       select: { id: true, slug: true, name: true },
     });
     res.json({ success: true, data: client });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /client/onboarding-status — para la lista de "Primeros pasos" del dashboard
+router.get('/onboarding-status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const status = await getOnboardingStatus(req.user!.clientId!);
+    res.json({ success: true, data: status });
   } catch (err) {
     next(err);
   }

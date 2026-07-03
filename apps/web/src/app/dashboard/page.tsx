@@ -16,16 +16,26 @@ interface DashboardMetrics {
   comparison: { leadsThisMonth: number; leadsLastMonth: number; change: number };
 }
 
+interface OnboardingStatus {
+  businessInfoComplete: boolean;
+  channelConnected: boolean;
+}
+
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
       try {
-        const { data } = await api.get('/conversations/dashboard');
-        setMetrics(data.data);
+        const [metricsRes, onboardingRes] = await Promise.all([
+          api.get('/conversations/dashboard'),
+          api.get('/client/onboarding-status'),
+        ]);
+        setMetrics(metricsRes.data.data);
+        setOnboarding(onboardingRes.data.data);
       } catch {
         toast.error('Error al cargar las métricas');
       } finally {
@@ -50,6 +60,14 @@ export default function DashboardPage() {
 
   const changeSign = (metrics?.comparison.change ?? 0) >= 0 ? '+' : '';
 
+  const onboardingSteps = [
+    { done: !user?.mustChangePassword, label: 'Cambia tu contraseña', href: '/dashboard/settings/profile' },
+    { done: !!onboarding?.businessInfoComplete, label: 'Completa la información de tu negocio', href: '/dashboard/settings/business' },
+    { done: !!onboarding?.channelConnected, label: 'Conecta un canal (WhatsApp o Widget web)', href: '/dashboard/settings/webchat' },
+  ];
+  const stepsDone = onboardingSteps.filter((s) => s.done).length;
+  const showOnboarding = !isLoading && stepsDone < onboardingSteps.length;
+
   return (
     <div className="space-y-4 md:space-y-6 pb-8">
       {/* Header */}
@@ -59,6 +77,40 @@ export default function DashboardPage() {
         </h1>
         <p className="text-dark-500 text-sm mt-1">Aquí está el resumen de tu negocio hoy</p>
       </div>
+
+      {/* Primeros pasos */}
+      {showOnboarding && (
+        <div className="card border-2 border-primary-200 bg-primary-50/30">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-dark-900 text-sm md:text-base">🚀 Primeros pasos</h2>
+            <span className="text-xs font-medium text-dark-500">{stepsDone}/{onboardingSteps.length} completados</span>
+          </div>
+          <div className="w-full h-1.5 bg-dark-100 rounded-full mb-4 overflow-hidden">
+            <div
+              className="h-full bg-primary-500 rounded-full transition-all"
+              style={{ width: `${(stepsDone / onboardingSteps.length) * 100}%` }}
+            />
+          </div>
+          <div className="space-y-2">
+            {onboardingSteps.map((step) => (
+              <Link
+                key={step.label}
+                href={step.href}
+                className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${
+                  step.done ? 'text-dark-400' : 'text-dark-800 hover:bg-white'
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
+                  step.done ? 'bg-green-500 text-white' : 'bg-white border-2 border-dark-300'
+                }`}>
+                  {step.done ? '✓' : ''}
+                </span>
+                <span className={`text-sm ${step.done ? 'line-through' : 'font-medium'}`}>{step.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPIs principales — 2 columnas en móvil, 4 en desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
